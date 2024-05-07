@@ -1,0 +1,16 @@
+{
+	"name": "web-tools-backend",
+	"version": "1.0.0",
+	"type": "module",
+	"main": "src/index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "MIT",
+	"description": "",
+	"dependencies": {
+		"@sie-js/vkp": "^1.0.5",
+		"sprintf-js": "^1.1.3"
+	}
+}
