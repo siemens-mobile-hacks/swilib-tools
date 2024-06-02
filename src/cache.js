@@ -1,9 +1,7 @@
 import fs from 'fs';
 import { getPlatformSwilibFromSDK, parseSwilibPatch } from "@sie-js/swilib";
-import { getCacheDir, getSdkDir, md5sum } from "./utils.js";
+import { SDK_DIR, CACHE_DIR, md5sum } from "./utils.js";
 import { simpleGit } from 'simple-git';
-
-const CACHE_DIR = getCacheDir();
 
 export function parseSwilibPatchCached(code) {
 	let hash = md5sum(code);
@@ -11,10 +9,9 @@ export function parseSwilibPatchCached(code) {
 }
 
 export async function getPlatformSwilibFromSDKCached(platform) {
-	let sdk = getSdkDir();
-	let git = simpleGit(sdk);
+	let git = simpleGit(SDK_DIR);
 	let revision = await git.revparse('HEAD');
-	return withCache(`sdk-${revision}-${platform}`, () => getPlatformSwilibFromSDK(sdk, platform));
+	return withCache(`sdk-${revision}-${platform}`, () => getPlatformSwilibFromSDK(SDK_DIR, platform));
 }
 
 export function withCache(key, getValue) {

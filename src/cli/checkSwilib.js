@@ -1,22 +1,31 @@
 import fs from 'fs';
 import chalk from 'chalk';
 import { table as asciiTable, getBorderCharacters } from 'table';
-import { getPatchByID, getSdkDir } from '../utils.js';
+import { getPatchByID, SDK_DIR } from '../utils.js';
 import { analyzeSwilib } from '../analyze.js';
 import swilibConfig from '../config.js';
-import { parsePatterns, parseSwilibPatch, getPlatformSwilibFromSDK } from '@sie-js/swilib';
-
-const SDK_DIR = getSdkDir();
+import { parsePatterns, parseSwilibPatch, getPlatformSwilibFromSDK, getPlatformByPhone } from '@sie-js/swilib';
 
 const tableConfig = {
 	singleLine: true,
 	border: getBorderCharacters('void')
 };
 
-export async function checkSwilibCmd({ file, platform }) {
-	if ((file in swilibConfig.patches)) {
-		let patchId = swilibConfig.patches[file];
-		file = getPatchByID(patchId);
+export async function checkSwilibCmd({ file, phone }) {
+	let platform;
+	if (swilibConfig.platforms.includes(phone)) {
+		platform = phone;
+	} else {
+		platform = getPlatformByPhone(phone);
+		if (!file && swilibConfig.patches[phone]) {
+			let patchId = swilibConfig.patches[phone];
+			file = getPatchByID(patchId);
+		}
+	}
+
+	if (!file) {
+		console.error(`File is not specified.`);
+		return;
 	}
 
 	console.log(`Checking ${file} (${platform})`);
@@ -26,7 +35,7 @@ export async function checkSwilibCmd({ file, platform }) {
 	let sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
 	let analysis = analyzeSwilib(platform, sdklib, swilib);
 
-	let patterns = parsePatterns(fs.readFileSync(`${getSdkDir()}/swilib/patterns/${platform}.ini`));
+	let patterns = parsePatterns(fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`));
 
 	// FIXME
 	swilib.entries[sdklib.length - 1] = swilib.entries[sdklib.length - 1] || undefined;

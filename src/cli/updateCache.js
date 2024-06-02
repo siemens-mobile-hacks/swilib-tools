@@ -1,13 +1,9 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import swilibConfig from '../config.js';
-import { getCacheDir, getPatchesDir, getSdkDir } from '../utils.js';
+import { getPatchByID, SDK_DIR, PATCHES_CACHE_DIR } from '../utils.js';
 import { getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from '../cache.js';
 import { simpleGit } from 'simple-git';
-
-const SDK_DIR = getSdkDir();
-const PATCHES_DIR = getPatchesDir();
-const PATCHES_CACHE_DIR = `${getCacheDir()}/patches`;
 
 export async function updateCacheCmd(argv) {
 	dropCaches();
@@ -22,7 +18,7 @@ async function precacheAll() {
 	console.log(`Precache swilib's...`);
 	for (let phone in swilibConfig.patches) {
 		let patchId = swilibConfig.patches[phone];
-		parseSwilibPatchCached(fs.readFileSync(`${PATCHES_CACHE_DIR}/${patchId}.vkp`));
+		parseSwilibPatchCached(fs.readFileSync(getPatchByID(patchId)));
 	}
 
 	console.log(`Precache SDK...`);
