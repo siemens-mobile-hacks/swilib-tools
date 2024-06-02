@@ -1,5 +1,3 @@
-# Swilib Tools
-
 # INSTALL
 ```bash
 git clone https://github.com/siemens-mobile-hacks/sdk
@@ -9,6 +7,16 @@ git clone https://github.com/siemens-mobile-hacks/swilib-tools
 cd swilib-tools
 npm install
 ```
+
+Expected filesystem structure:
+```
+.
+├── patches/        <-- git siemens-mobile-hacks/patches
+├── sdk/            <-- git siemens-mobile-hacks/sdk
+└── swilib-tools/   <-- git siemens-mobile-hacks/swilib-tools
+```
+
+Current architecture uses `sdk` and `patches` from the parent directory.
 
 # USAGE
 1. Check local swilib.vkp for errors:
