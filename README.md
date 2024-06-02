@@ -1,13 +1,27 @@
 # Swilib Tools
 
+# INSTALL
+```bash
+git clone https://github.com/siemens-mobile-hacks/sdk
+git clone https://github.com/siemens-mobile-hacks/patches
+git clone https://github.com/siemens-mobile-hacks/swilib-tools
+
+cd swilib-tools
+npm install
 ```
-swilib-tools.js [command]
 
-Commands:
-  swilib-tools.js update-cache             Update all caches.
-  swilib-tools.js check <platform> <file>  Check swilib.vkp for errors.
+# USAGE
+1. Check local swilib.vkp for errors:
+```bash
+# You can specify phone model or platform
+node bin/swilib-tools.js check EL71v45 path/to/swilib.vkp 
+node bin/swilib-tools.js check ELKA path/to/swilib.vkp
+```
+2. Check swilib.vkp from https://patches.kibab.com
+```bash
+# Update local caches (optional)
+node bin/swilib-tools.js update-cache
 
-Options:
-  --help     Show help                                                 [boolean]
-  --version  Show version number                                       [boolean]
+# Check swilib.vkp from kibab
+node bin/swilib-tools.js check EL71v45
 ```
