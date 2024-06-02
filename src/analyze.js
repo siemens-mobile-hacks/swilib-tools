@@ -113,15 +113,21 @@ export function getFunctionsSummary() {
 			}
 
 			let functionCoverage = [];
-			for (let platform of ["ALL", "ELKA", "NSG", "X75", "SG"]) {
-				let coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
-				functionCoverage.push(+coveragePct.toFixed(1));
+			for (let platform of ["ELKA", "NSG", "X75", "SG"]) {
+				if (swilibConfig.builtin[id]?.includes(platform)) {
+					functionCoverage.push(200); // special value "builtin"
+				} else if (swilibConfig.platformDependentFunctions[id]?.includes(platform)) {
+					functionCoverage.push(-200); // special value "not available"
+				} else {
+					let coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
+					functionCoverage.push(+coveragePct.toFixed(1));
+				}
 			}
 
 			let flags = 0;
 			if (swilibConfig.fromPatches.includes(id))
 				flags |= SwiFlags.FROM_PATCH;
-			if (swilibConfig.builtin.includes(id))
+			if ((id in swilibConfig.builtin))
 				flags |= SwiFlags.BUILTIN;
 
 			let file = func.files[0];
@@ -187,13 +193,18 @@ export function analyzeSwilib(platform, sdklib, swilib) {
 		}
 
 		if (sdklib[id] && !func) {
-			if (!swilibConfig.builtin.includes(id))
+			if (!(id in swilibConfig.builtin))
 				missing.push(id);
 			continue;
 		}
 
-		if (swilibConfig.builtin.includes(id) && func) {
+		if (swilibConfig.builtin[id]?.includes(platform) && func) {
 			errors[id] = `Reserved by ELFLoader (${sdklib[id].symbol}).`;
+			continue;
+		}
+
+		if (swilibConfig.platformDependentFunctions[id]?.includes(platform) && func) {
+			errors[id] = `Functions is not available on this platform.`;
 			continue;
 		}
 

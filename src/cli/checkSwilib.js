@@ -1,7 +1,7 @@
 import fs from 'fs';
 import chalk from 'chalk';
 import { table as asciiTable, getBorderCharacters } from 'table';
-import { getSdkDir } from '../utils.js';
+import { getPatchByID, getSdkDir } from '../utils.js';
 import { analyzeSwilib } from '../analyze.js';
 import swilibConfig from '../config.js';
 import { parsePatterns, parseSwilibPatch, getPlatformSwilibFromSDK } from '@sie-js/swilib';
@@ -14,6 +14,11 @@ const tableConfig = {
 };
 
 export async function checkSwilibCmd({ file, platform }) {
+	if ((file in swilibConfig.patches)) {
+		let patchId = swilibConfig.patches[file];
+		file = getPatchByID(patchId);
+	}
+
 	console.log(`Checking ${file} (${platform})`);
 	console.log();
 
