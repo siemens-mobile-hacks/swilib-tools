@@ -40,8 +40,6 @@ export async function checkSwilibCmd({ file, platform }) {
 			if (swilibConfig.fromPatches.includes(id))
 				notes.push(chalk.red('patch'));
 
-			console.log(func);
-
 			let row = [
 				formatId(id),
 				formatFuncName(sdklib[id]?.name),
