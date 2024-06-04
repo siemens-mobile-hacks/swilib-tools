@@ -1,6 +1,6 @@
 module.exports = {
 	apps: [{
-		name:	"backend",
+		name:	"swilib-tools",
 		script: "npm",
 		args:	"run start",
 	}]
