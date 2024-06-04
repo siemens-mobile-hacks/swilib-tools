@@ -15,7 +15,7 @@
 	"license": "MIT",
 	"description": "",
 	"dependencies": {
-		"@sie-js/swilib": "github:siemens-mobile-hacks/node-sie-swilib",
+		"@sie-js/swilib": "^1.0.2",
 		"@sie-js/vkp": "^1.0.6",
 		"chalk": "^5.3.0",
 		"compression": "^1.7.4",

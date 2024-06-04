@@ -51,6 +51,9 @@ export async function checkSwilibCmd({ file, phone }) {
 			if (swilibConfig.fromPatches.includes(id))
 				notes.push(chalk.red('patch'));
 
+			if (swilibConfig.platformDependentFunctions[id] && !swilibConfig.platformDependentFunctions[id].includes(platform))
+				notes.push(chalk.grey('not available'));
+
 			let row = [
 				formatId(id),
 				formatFuncName(sdklib[id]?.name),
