@@ -33,3 +33,17 @@ node bin/swilib-tools.js update-cache
 # Check swilib.vkp from kibab
 node bin/swilib-tools.js check EL71v45
 ```
+
+# API SERVER
+Yout can use [https://pm2.keymetrics.io/](pm2) for process manager.
+
+**Setup:**
+```bash
+pm2 start ecosystem.config.cjs
+pm2 save
+```
+
+**Deploy:**
+```bash
+./deploy.sh
+```
