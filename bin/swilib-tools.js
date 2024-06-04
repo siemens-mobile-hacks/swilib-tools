@@ -22,7 +22,7 @@ await yargs(hideBin(process.argv))
 	})
 	.command('server [port]', 'Run backend for web-dev-tools.', (yargs) => {
 		return yargs
-			.positional('port', { describe: 'Server port.', default: 4000 });
+			.positional('port', { describe: 'Server port.', default: 31000 });
 	}, (argv) => {
 		if (checkGitRepos())
 			serverCmd(argv);

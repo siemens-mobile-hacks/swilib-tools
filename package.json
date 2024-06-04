@@ -5,8 +5,7 @@
 	"main": "src/index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"update": "node src/cli/update.js",
-		"swilib-tools": "node bin/swilib-tools.js",
+		"start": "node bin/swilib-tools.js server",
 		"link-local-deps": "npm link -S ../node-sie-swilib/",
 		"unlink-local-deps": "npm uninstall @sie-js/swilib && npm install @sie-js/swilib"
 	},
