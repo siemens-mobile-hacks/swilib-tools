@@ -110,7 +110,7 @@ export async function getFunctionsSummary() {
 			for (let platform of ["ELKA", "NSG", "X75", "SG"]) {
 				if (swilibConfig.builtin[id]?.includes(platform)) {
 					functionCoverage.push(200); // special value "builtin"
-				} else if (swilibConfig.platformDependentFunctions[id]?.includes(platform)) {
+				} else if (swilibConfig.platformDependentFunctions[id] && !swilibConfig.platformDependentFunctions[id].includes(platform)) {
 					functionCoverage.push(-200); // special value "not available"
 				} else {
 					let coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
