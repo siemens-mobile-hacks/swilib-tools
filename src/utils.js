@@ -8,11 +8,8 @@ export const ROOT_DIR = path.resolve(`${import.meta.dirname}/../`);
 export const CACHE_DIR = path.resolve(`${ROOT_DIR}/cache`);
 export const PATCHES_DIR = path.resolve(`${ROOT_DIR}/../patches`);
 export const SDK_DIR = path.resolve(`${ROOT_DIR}/../sdk`);
-export const PATCHES_CACHE_DIR = `${CACHE_DIR}/patches`;
 
 export function getPatchByID(id, model) {
-	if (fs.existsSync(`${PATCHES_CACHE_DIR}/${id}.vkp`))
-		return `${PATCHES_CACHE_DIR}/${id}.vkp`;
 	let [patchFile] = globSync(`${PATCHES_DIR}/patches/${model || '*'}/${id}-*.vkp`);
 	return patchFile;
 }

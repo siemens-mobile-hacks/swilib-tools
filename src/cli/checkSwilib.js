@@ -2,9 +2,7 @@ import fs from 'fs';
 import chalk from 'chalk';
 import { table as asciiTable, getBorderCharacters } from 'table';
 import { getPatchByID, SDK_DIR } from '../utils.js';
-import { analyzeSwilib } from '../analyze.js';
-import swilibConfig from '../config.js';
-import { parsePatterns, parseSwilibPatch, getPlatformSwilibFromSDK, getPlatformByPhone } from '@sie-js/swilib';
+import { swilibConfig, parsePatterns, parseSwilibPatch, getPlatformSwilibFromSDK, getPlatformByPhone, analyzeSwilib } from '@sie-js/swilib';
 
 const tableConfig = {
 	singleLine: true,
@@ -45,7 +43,6 @@ export async function checkSwilibCmd({ file, phone }) {
 			[chalk.bold('ID'), chalk.bold('Name'), chalk.bold(`Notes`)]
 		];
 		for (let id of analysis.missing) {
-			let func = sdklib[id];
 			let notes = [];
 
 			if (patterns[id]?.pattern)
@@ -89,33 +86,16 @@ export async function checkSwilibCmd({ file, phone }) {
 		console.log(chalk.bold(chalk.green('No errors in swilib!')));
 	}
 
-	printSummaryStat(sdklib, analysis);
+	printSummaryStat(analysis.stat);
 }
 
-function printSummaryStat(sdklib, analysis) {
-	let errorsCnt = 0;
-	let missingCnt = 0;
-	let goodCnt = 0;
-	let totalCnt = sdklib.length;
-
-	for (let id = 0; id < totalCnt; id++) {
-		if (analysis.errors[id]) {
-			errorsCnt++;
-		} else if (analysis.missing.includes(id)) {
-			missingCnt++;
-		} else {
-			goodCnt++;
-		}
-	}
-
-	let calcPct = (v) => (v / totalCnt * 100).toFixed(0) + '%';
-
+function printSummaryStat(stat) {
+	let calcPct = (v) => Math.round(v / stat.total * 100) + '%';
 	let summaryTable = [
-		[chalk.green(chalk.bold('Good functions:')), chalk.greenBright(goodCnt), chalk.greenBright(calcPct(goodCnt))],
-		[chalk.red(chalk.bold('Bad functions:')), chalk.redBright(errorsCnt), chalk.redBright(calcPct(errorsCnt))],
-		[chalk.yellow(chalk.bold('Missing functions:')), chalk.yellowBright(missingCnt), chalk.yellowBright(calcPct(missingCnt))],
+		[chalk.green(chalk.bold('Good functions:')), chalk.greenBright(stat.good), chalk.greenBright(calcPct(stat.good))],
+		[chalk.red(chalk.bold('Bad functions:')), chalk.redBright(stat.bad), chalk.redBright(calcPct(stat.bad))],
+		[chalk.yellow(chalk.bold('Missing functions:')), chalk.yellowBright(stat.missing), chalk.yellowBright(calcPct(stat.missing))],
 	];
-
 	console.log(asciiTable(summaryTable, tableConfig));
 }
 

@@ -1,15 +1,14 @@
-#!/usr/bin/env node
 import fs from 'fs';
-import swilibConfig from '../config.js';
-import { getPatchByID, SDK_DIR, PATCHES_CACHE_DIR } from '../utils.js';
+import { getPatchByID, PATCHES_DIR, SDK_DIR, CACHE_DIR } from '../utils.js';
 import { getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from '../cache.js';
 import { simpleGit } from 'simple-git';
+import { swilibConfig } from '@sie-js/swilib';
 
 export async function updateCacheCmd(argv) {
 	dropCaches();
-	await downloadPatches();
 	await syncGitRepos();
 	await precacheAll();
+	fs.writeFileSync(`${CACHE_DIR}/.timestamp`, Date.now().toString());
 	console.log(`done.`);
 	return 0;
 }
@@ -30,46 +29,23 @@ async function precacheAll() {
 async function syncGitRepos() {
 	for (let repo of [SDK_DIR, PATCHES_DIR]) {
 		let git = simpleGit(repo);
+		git.outputHandler((command, stdout, stderr) => {
+			stdout.pipe(process.stdout);
+			stderr.pipe(process.stderr);
+			console.log();
+		});
 		let isClean = (await git.status({'untracked-file': 'no'})).isClean();
 		if (!isClean) {
 			console.error(`[error] Git working directory not clean: ${repi}`);
 			continue;
 		}
-		console.log(`[git] sync ${repo}`);
 		await git.pull(repo);
-		let rev = await git.revparse('HEAD');
-		console.log(`rev: ${rev}`);
 	}
-}
-
-async function downloadPatches() {
-	console.log(`Fetching all swilib's....`);
-	fs.mkdirSync(PATCHES_CACHE_DIR, { recursive: true });
-
-	let promises = [];
-	for (let phone in swilibConfig.patches) {
-		let patchId = swilibConfig.patches[phone];
-		promises.push(fetchPatch(patchId));
-	}
-
-	let patches = await Promise.all(promises);
-	for (let patch of patches) {
-		console.log(` + ${patch.id}.vkp`);
-		fs.writeFileSync(`${PATCHES_CACHE_DIR}/${patch.id}.vkp`, Buffer.from(patch.data));
-	}
-}
-
-async function fetchPatch(patchId) {
-	let req = await fetch(`https://patches.kibab.com/patches/dn.php5?id=${patchId}&no_counter=1`);
-	return {
-		id: patchId,
-		data: await req.arrayBuffer()
-	};
+	console.log();
 }
 
 function dropCaches() {
 	console.log(`Clean all caches...`);
-	let cacheDir = getCacheDir();
-	if (fs.existsSync(cacheDir))
-		fs.rmSync(cacheDir, { recursive: true });
+	if (fs.existsSync(CACHE_DIR))
+		fs.rmSync(CACHE_DIR, { recursive: true });
 }

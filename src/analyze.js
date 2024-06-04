@@ -1,45 +1,40 @@
 import fs from 'fs';
-import { getPlatformByPhone } from '@sie-js/swilib';
-import { getPatchByID, SDK_DIR } from './utils.js';
+import { swilibConfig, analyzeSwilib, getPlatformByPhone, SwiType } from '@sie-js/swilib';
 import { getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from './cache.js';
-import swilibConfig from './config.js';
-
-export const SwiType = {
-	EMPTY:		0,
-	FUNCTION:	1,
-	POINTER:	2,
-	VALUE:		3,
-};
+import { getPatchByID } from './utils.js';
 
 export const SwiFlags = {
 	BUILTIN:		1 << 0,
 	FROM_PATCH:		1 << 1,
 };
 
-const functionPairs = getFunctionPairs();
-
-export function getFunctionsForPhone(phone) {
+export async function getPhoneSwilib(phone) {
 	let patchId = swilibConfig.patches[phone];
 	let patchFile = getPatchByID(patchId, phone);
 	let platform = getPlatformByPhone(phone);
-	let sdklib = getPlatformSwilibFromSDKCached(SDK_DIR, platform);
+	let sdklib = await getPlatformSwilibFromSDKCached(platform);
 
-	let swilib = parseSwilibPatchCached(fs.readFileSync(patchFile));
-	let analyze = analyzeSwilib(phone, sdklib, swilib);
+	let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+	let analysis = analyzeSwilib(phone, sdklib, swilib);
 
 	swilib.entries[sdklib.length - 1] = swilib.entries[sdklib.length - 1] || undefined;
 
-	return {
-		patchId,
-		errors: analyze.errors,
-		missing: analyze.missing,
-		address: 0xA0000000 + swilib.offset,
-		values: swilib.entries.map((entry) => entry?.value),
-		symbols: swilib.entries.map((entry) => entry?.symbol),
-	};
+	let swilibEntries = [];
+	for (let id = 0; id < sdklib.length; id++) {
+		let entry = {
+			id: id,
+			symbol: swilib.entries[id]?.symbol,
+			value: swilib.entries[id]?.value,
+			error: analysis.errors[id],
+		};
+		if (entry.value || entry.error)
+			swilibEntries[id] = entry;
+	}
+
+	return { patchId, swilib: swilibEntries, offset: swilib.offset, platform };
 }
 
-export function getFunctionsSummary() {
+export async function getFunctionsSummary() {
 	let coverage = {};
 	let phonesCoverage = {};
 	let platformToLib = {};
@@ -47,7 +42,7 @@ export function getFunctionsSummary() {
 	let maxFunctionId = 0;
 
 	for (let platform of ["ELKA", "NSG", "X75", "SG"]) {
-		platformToLib[platform] = getPlatformSwilibFromSDKCached(SDK_DIR, platform);
+		platformToLib[platform] = await getPlatformSwilibFromSDKCached(platform);
 		maxFunctionId = Math.max(maxFunctionId, platformToLib[platform].length);
 	}
 
@@ -57,8 +52,8 @@ export function getFunctionsSummary() {
 		let platform = getPlatformByPhone(phone);
 		let sdklib = platformToLib[platform];
 
-		let swilib = parseSwilibPatchCached(fs.readFileSync(patchFile));
-		let { missing, errors, types } = analyzeSwilib(phone, sdklib, swilib);
+		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+		let { missing, errors } = analyzeSwilib(phone, sdklib, swilib);
 
 		let goodFunctionsCnt = 0;
 		for (let id = 0; id < sdklib.length; id++) {
@@ -87,7 +82,6 @@ export function getFunctionsSummary() {
 	}
 
 	let allFunctions = [];
-	let allFunctionsByFile = {};
 	for (let id = 0; id < maxFunctionId; id++) {
 		let func = platformToLib.ELKA[id] || platformToLib.NSG[id] || platformToLib.X75[id] || platformToLib.SG[id];
 		if (func) {
@@ -137,12 +131,10 @@ export function getFunctionsSummary() {
 				name: func.name,
 				aliases,
 				flags,
-				type: func.functions.length ? SwiType.FUNCTION : SwiType.POINTER,
+				file,
+				type: func.type,
 				coverage: functionCoverage,
 			};
-
-			allFunctionsByFile[file] = allFunctionsByFile[file] || [];
-			allFunctionsByFile[file].push(funcInfo);
 			allFunctions[id] = funcInfo;
 		} else {
 			let file = "swilib/unused.h";
@@ -150,79 +142,21 @@ export function getFunctionsSummary() {
 				id,
 				name: null,
 				aliases: [],
+				flags: 0,
+				file,
 				type: SwiType.EMPTY,
-				coverage: [null, null, null, null, null],
+				coverage: [null, null, null, null],
 			};
-			allFunctionsByFile[file] = allFunctionsByFile[file] || [];
-			allFunctionsByFile[file].push(funcInfo);
 			allFunctions[id] = funcInfo;
 		}
 	}
 
 	return {
 		functions: allFunctions,
-		functionsByFile: allFunctionsByFile,
-		functionsByPhone: functionsByPhone,
-		coverage: phonesCoverage,
+		functionsByPhone,
+		phonesCoverage,
 		maxFunctionId
 	};
-}
-
-export function analyzeSwilib(platform, sdklib, swilib) {
-	let maxFunctionId = Math.max(sdklib.length, swilib.entries.length);
-	let errors = {};
-	let duplicates = {};
-	let missing = [];
-
-	for (let id = 0; id < maxFunctionId; id++) {
-		let func = swilib.entries[id];
-		if (!sdklib[id] && !func)
-			continue;
-
-		if (!sdklib[id] && func) {
-			errors[id] = `Unknown function: ${func.symbol}`;
-			continue;
-		}
-
-		if (functionPairs[id]) {
-			let masterFunc = swilib.entries[functionPairs[id][0]];
-			if (masterFunc && (!func || masterFunc.value != func.value)) {
-				let expectedValue = masterFunc.value.toString(16).padStart(8, '0').toUpperCase();
-				errors[id] = `Address must be equal with #${formatId(masterFunc.id)} ${masterFunc.symbol} (0x${expectedValue}).`;
-			}
-		}
-
-		if (sdklib[id] && !func) {
-			if (!(id in swilibConfig.builtin))
-				missing.push(id);
-			continue;
-		}
-
-		if (swilibConfig.builtin[id]?.includes(platform) && func) {
-			errors[id] = `Reserved by ELFLoader (${sdklib[id].symbol}).`;
-			continue;
-		}
-
-		if (swilibConfig.platformDependentFunctions[id]?.includes(platform) && func) {
-			errors[id] = `Functions is not available on this platform.`;
-			continue;
-		}
-
-		if (!isSameFunctions(sdklib[id], func)) {
-			errors[id] = `Invalid function: ${func.symbol}`;
-			continue;
-		}
-
-		if ((BigInt(func.value) & 0xF0000000n) == 0xA0000000n) {
-			if (duplicates[func.value]) {
-				let dupId = duplicates[func.value];
-				if (!functionPairs[func.id] || !functionPairs[func.id].includes(dupId))
-					errors[id] = `Address already used for #${formatId(dupId)} ${sdklib[dupId].symbol}.`;
-			}
-		}
-	}
-
-	return { errors, missing };
 }
 
 function isStrInArray(arr, search) {
@@ -234,33 +168,4 @@ function isStrInArray(arr, search) {
 		}
 	}
 	return false;
-}
-
-function formatId(id) {
-	return (+id).toString(16).padStart(3, 0).toUpperCase();
-}
-
-function isSameFunctions(targetFunc, checkFunc) {
-	if (!targetFunc && !checkFunc)
-		return true;
-	if (!targetFunc || !checkFunc)
-		return false;
-	if (targetFunc.id != checkFunc.id)
-		return false;
-	if (targetFunc.symbol == checkFunc.symbol)
-		return true;
-	if (isStrInArray(targetFunc.aliases, checkFunc.symbol))
-		return true;
-	if (isStrInArray(swilibConfig.aliases[+targetFunc.id], checkFunc.symbol))
-		return true;
-	return false;
-}
-
-function getFunctionPairs() {
-	let functionPairs = {};
-	for (let p of swilibConfig.pairs) {
-		for (let i = 0; i < p.length; i++)
-			functionPairs[p[i]] = p;
-	}
-	return functionPairs;
 }

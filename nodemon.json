@@ -1,0 +1,5 @@
+{
+	"verbose": true,
+	"exec": "bin/swilib-tools.js server",
+	"ignore": ["cache/*"]
+}

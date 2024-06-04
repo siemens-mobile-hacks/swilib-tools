@@ -3,7 +3,7 @@ import { getPlatformSwilibFromSDK, parseSwilibPatch } from "@sie-js/swilib";
 import { SDK_DIR, CACHE_DIR, md5sum } from "./utils.js";
 import { simpleGit } from 'simple-git';
 
-export function parseSwilibPatchCached(code) {
+export async function parseSwilibPatchCached(code) {
 	let hash = md5sum(code);
 	return withCache(`swilib-${hash}`, () => parseSwilibPatch(code));
 }
@@ -21,7 +21,17 @@ export function withCache(key, getValue) {
 			return JSON.parse(fs.readFileSync(cacheFile));
 		} catch (e) { /* ignored */ }
 	}
+
+	if (!fs.existsSync(CACHE_DIR))
+		fs.mkdirSync(CACHE_DIR, { recursive: true });
+
 	let value = getValue();
 	fs.writeFileSync(cacheFile, JSON.stringify(value));
 	return value;
+}
+
+export function getLastCacheTime() {
+	if (fs.existsSync(`${CACHE_DIR}/.timestamp`))
+		return +fs.readFileSync(`${CACHE_DIR}/.timestamp`).toString();
+	return 0;
 }
