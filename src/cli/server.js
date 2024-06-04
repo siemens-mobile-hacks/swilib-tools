@@ -11,7 +11,7 @@ export function serverCmd({ port }) {
 	app.use(compression());
 
 	// Get phones list
-	app.get('/swilib-tools/phones.json', (req, res) => {
+	app.get('/phones.json', (req, res) => {
 		let platformToPhones = {};
 		let phones = [];
 		for (let phone of swilibConfig.phones) {
@@ -32,7 +32,7 @@ export function serverCmd({ port }) {
 	});
 
 	// Analyze swilib
-	app.get('/swilib-tools/:phone(\\w+v\\d+).json', async (req, res) => {
+	app.get('/:phone(\\w+v\\d+).json', async (req, res) => {
 		let phone = req.params.phone;
 		if (!swilibConfig.phones.includes(phone)) {
 			res.sendStatus(404);
@@ -44,7 +44,7 @@ export function serverCmd({ port }) {
 	});
 
 	// Get all functions (summary)
-	app.get('/swilib-tools/summary.json', async (req, res) => {
+	app.get('/summary.json', async (req, res) => {
 		let response = await getFunctionsSummary();
 		res.set('Last-Cache-Update', getLastCacheTime());
 		res.send(response);
