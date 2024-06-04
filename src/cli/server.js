@@ -13,16 +13,22 @@ export function serverCmd({ port }) {
 	// Get phones list
 	app.get('/phones.json', (req, res) => {
 		let platformToPhones = {};
+		let phones = [];
 		for (let phone of swilibConfig.phones) {
 			let platform = getPlatformByPhone(phone);
-			platformToPhones[platform] = platformToPhones[platform] || [];
-			platformToPhones[platform].push({
+			let phoneInfo = {
 				name: phone,
 				model: phone.split('v')[0],
 				sw: +phone.split('v')[1],
-			});
+			};
+			platformToPhones[platform] = platformToPhones[platform] || [];
+			platformToPhones[platform].push(phoneInfo);
+			phones.push(phoneInfo);
 		}
-		res.send(platformToPhones);
+		res.send({
+			byPlatform: platformToPhones,
+			all: phones,
+		});
 	});
 
 	// Analyze swilib

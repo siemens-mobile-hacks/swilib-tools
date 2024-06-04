@@ -31,7 +31,7 @@ export async function getPhoneSwilib(phone) {
 			swilibEntries[id] = entry;
 	}
 
-	return { patchId, swilib: swilibEntries, offset: swilib.offset, platform };
+	return { patchId, entries: swilibEntries, offset: swilib.offset, platform, stat: analysis.stat };
 }
 
 export async function getFunctionsSummary() {
@@ -155,7 +155,7 @@ export async function getFunctionsSummary() {
 		functions: allFunctions,
 		functionsByPhone,
 		phonesCoverage,
-		maxFunctionId
+		nextId: maxFunctionId
 	};
 }
 

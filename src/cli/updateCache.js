@@ -34,12 +34,11 @@ async function syncGitRepos() {
 			stderr.pipe(process.stderr);
 			console.log();
 		});
-		let isClean = (await git.status({'untracked-file': 'no'})).isClean();
-		if (!isClean) {
-			console.error(`[error] Git working directory not clean: ${repi}`);
-			continue;
+		try {
+			await git.pull(repo);
+		} catch (e) {
+			console.log(`GIT pull error for repo ${repo}`);
 		}
-		await git.pull(repo);
 	}
 	console.log();
 }
