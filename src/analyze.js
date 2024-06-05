@@ -121,7 +121,7 @@ export async function getFunctionsSummary() {
 					dirtyEntries[id] = true;
 			}
 
-			if (swilib.entries[id]?.value != null) {
+			if (swilib.entries[id]?.value != null || swilibConfig.builtin[id]?.includes(platform)) {
 				functionsByPhone[phone] = functionsByPhone[phone] || [];
 				functionsByPhone[phone].push(id);
 			}
