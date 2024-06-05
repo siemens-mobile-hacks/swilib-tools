@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { getPatchByID, PATCHES_DIR, SDK_DIR, CACHE_DIR } from '../utils.js';
-import { getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from '../cache.js';
+import { getPlatformSwilibFromSDKCached, parsePatternsCached, parseSwilibPatchCached } from '../cache.js';
 import { simpleGit } from 'simple-git';
 import { swilibConfig } from '@sie-js/swilib';
 
@@ -20,9 +20,10 @@ async function precacheAll() {
 		parseSwilibPatchCached(fs.readFileSync(getPatchByID(patchId)));
 	}
 
-	console.log(`Precache SDK...`);
+	console.log(`Precache SDK & patterns...`);
 	for (let platform of swilibConfig.platforms) {
 		getPlatformSwilibFromSDKCached(platform);
+		parsePatternsCached(platform);
 	}
 }
 

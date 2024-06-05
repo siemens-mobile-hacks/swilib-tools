@@ -1,7 +1,13 @@
 import fs from 'fs';
-import { getPlatformSwilibFromSDK, parseSwilibPatch } from "@sie-js/swilib";
+import { getPlatformSwilibFromSDK, parsePatterns, parseSwilibPatch } from "@sie-js/swilib";
 import { SDK_DIR, CACHE_DIR, md5sum } from "./utils.js";
 import { simpleGit } from 'simple-git';
+
+export async function parsePatternsCached(platform) {
+	let code = fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`);
+	let hash = md5sum(code);
+	return withCache(`patterns-${hash}`, () => parsePatterns(code));
+}
 
 export async function parseSwilibPatchCached(code) {
 	let hash = md5sum(code);
