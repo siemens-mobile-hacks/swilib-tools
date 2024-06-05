@@ -54,7 +54,7 @@ export function serverCmd({ port }) {
 		}
 		let patchId = swilibConfig.patches[phone];
 		let patchFile = getPatchByID(patchId, phone);
-		let swilib = await parseSwilibPatchCached(patchFile);
+		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
 		res.send(getSwiBlib(swilib));
 	});
 
