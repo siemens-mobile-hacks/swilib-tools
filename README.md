@@ -27,14 +27,15 @@ node bin/swilib-tools.js check ELKA path/to/swilib.vkp
 ```
 2. Check swilib.vkp from https://patches.kibab.com
 ```bash
-# Update local caches (optional)
-node bin/swilib-tools.js update-cache
-
-# Check swilib.vkp from kibab
+# Don't forget git pull in patches & sdk repos
 node bin/swilib-tools.js check EL71v45
 ```
+3. Merge two swilibs into single one (interactive):
+```bash
+node bin/swilib-tools.js check C81v51 swilib_a.vkp swilib_b.vkp new_swilib.vjp
+```
 
-# API SERVER
+# HTTP API SERVER
 Yout can use [https://pm2.keymetrics.io/](pm2) for process manager.
 
 **Setup:**

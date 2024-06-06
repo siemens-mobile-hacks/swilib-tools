@@ -7,7 +7,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"start": "node bin/swilib-tools.js server",
 		"link-local-deps": "npm link -S ../node-sie-swilib/",
-		"unlink-local-deps": "npm uninstall @sie-js/swilib && npm install @sie-js/swilib"
+		"unlink-local-deps": "npm uninstall @sie-js/swilib && npm install https://github.com/siemens-mobile-hacks/node-sie-swilib/tarball/master"
 	},
 	"bin": "./bin/swilib-tools.js",
 	"author": "",
@@ -21,6 +21,7 @@
 		"cors": "^2.8.5",
 		"express": "^4.19.2",
 		"glob": "^10.3.12",
+		"inquirer": "^9.2.23",
 		"json5": "^2.2.3",
 		"simple-git": "^3.24.0",
 		"sprintf-js": "^1.1.3",

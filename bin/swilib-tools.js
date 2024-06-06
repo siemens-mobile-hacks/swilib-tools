@@ -4,6 +4,7 @@ import { hideBin } from 'yargs/helpers'
 import process from "node:process";
 import { updateCacheCmd } from '../src/cli/updateCache.js';
 import { checkSwilibCmd } from '../src/cli/checkSwilib.js';
+import { mergeSwilib } from '../src/cli/mergeSwilib.js';
 import { serverCmd } from '../src/cli/server.js';
 import { checkGitRepos } from '../src/utils.js';
 
@@ -16,9 +17,15 @@ await yargs(hideBin(process.argv))
 		if (checkGitRepos())
 			checkSwilibCmd(argv);
 	})
-	.command('update-cache', 'Update all caches (for server).', () => {}, async (argv) => {
+	.command('merge <phone> <file_a> <file_b> <new_file>', 'Merge two swilib\'s into single one.', (yargs) => {
+		return yargs
+			.positional('phone', { describe: 'Phone model with sw version (e.g. EL71v45) or platform (ELKA|NSG|X75|SG).' })
+			.positional('file_a', { describe: 'The first swilib.vkp to merge.' })
+			.positional('file_b', { describe: 'The second swilib.vkp to merge.' })
+			.positional('new_file', { describe: 'Merged swilib.vkp.' });
+	}, (argv) => {
 		if (checkGitRepos())
-			await updateCacheCmd(argv);
+			mergeSwilib(argv);
 	})
 	.command('server [port]', 'Run backend for web-dev-tools.', (yargs) => {
 		return yargs
@@ -27,7 +34,14 @@ await yargs(hideBin(process.argv))
 		if (checkGitRepos())
 			serverCmd(argv);
 	})
-	.help()
+	.command('update-cache', 'Update all caches (for server).', () => {}, async (argv) => {
+		if (checkGitRepos())
+			await updateCacheCmd(argv);
+	})
+	.alias('h', 'help')
+	.usage('$0 <command> [options]')
+	.command('$0', 'Swilib tools.', () => { }, (argv) => console.log(`Specify --help for available options.`))
 	.showHelpOnFail(true)
+	.help('help')
 	.wrap(null)
 	.parse();
