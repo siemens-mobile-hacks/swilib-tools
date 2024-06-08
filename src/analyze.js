@@ -16,7 +16,7 @@ export async function getPhoneSwilib(phone) {
 	let sdklib = await getPlatformSwilibFromSDKCached(platform);
 
 	let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
-	let analysis = analyzeSwilib(phone, sdklib, swilib);
+	let analysis = analyzeSwilib(platform, sdklib, swilib);
 
 	swilib.entries[sdklib.length - 1] = swilib.entries[sdklib.length - 1] || undefined;
 
@@ -54,9 +54,9 @@ export async function getPatternsSummary() {
 		let coverage = [];
 		for (let platform of swilibConfig.platforms) {
 			let patterns = platformToPatterns[platform];
-			if (swilibConfig.builtin[id]?.includes(platform)) {
+			if (func?.builtin?.includes(platform)) {
 				coverage.push(200); // special value "builtin"
-			} else if (swilibConfig.platformDependentFunctions[id] && !swilibConfig.platformDependentFunctions[id].includes(platform)) {
+			} else if (func.platforms && !func.platforms.includes(platform)) {
 				coverage.push(-200); // special value "not available"
 			} else {
 				coverage.push(patterns[id]?.pattern != null ? 100 : 0);
@@ -96,7 +96,7 @@ export async function getFunctionsSummary() {
 		let sdklib = platformToLib[platform];
 
 		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
-		let { missing, errors } = analyzeSwilib(phone, sdklib, swilib);
+		let { missing, errors } = analyzeSwilib(platform, sdklib, swilib);
 
 		let goodFunctionsCnt = 0;
 		for (let id = 0; id < sdklib.length; id++) {
@@ -121,7 +121,7 @@ export async function getFunctionsSummary() {
 					dirtyEntries[id] = true;
 			}
 
-			if (swilib.entries[id]?.value != null || swilibConfig.builtin[id]?.includes(platform)) {
+			if (!errors[id] && !missing.includes(id)) {
 				functionsByPhone[phone] = functionsByPhone[phone] || [];
 				functionsByPhone[phone].push(id);
 			}
@@ -160,10 +160,10 @@ export async function getFunctionsSummary() {
 			let patterns = [];
 			for (let platform of swilibConfig.platforms) {
 				let ptrlib = platformToPatterns[platform];
-				if (swilibConfig.builtin[id]?.includes(platform)) {
+				if (func.builtin?.includes(platform)) {
 					functionCoverage.push(200); // special value "builtin"
 					patternCovarage.push(200); // special value "builtin"
-				} else if (swilibConfig.platformDependentFunctions[id] && !swilibConfig.platformDependentFunctions[id].includes(platform)) {
+				} else if (func.platforms && !func.platforms.includes(platform)) {
 					functionCoverage.push(-200); // special value "not available"
 					patternCovarage.push(-200); // special value "builtin"
 				} else {
@@ -176,9 +176,9 @@ export async function getFunctionsSummary() {
 			}
 
 			let flags = 0;
-			if (swilibConfig.fromPatches.includes(id))
+			if (func.files.includes('swilib/patch.h'))
 				flags |= SwiFlags.FROM_PATCH;
-			if ((id in swilibConfig.builtin))
+			if (func.builtin)
 				flags |= SwiFlags.BUILTIN;
 			if (dirtyEntries[id])
 				flags |= SwiFlags.DIRTY;
