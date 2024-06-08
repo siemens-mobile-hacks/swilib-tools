@@ -3,9 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import { getFunctionsSummary, getPhoneSwilib } from '../analyze.js';
-import { swilibConfig, getPlatformByPhone, getSwiBlib, analyzeSwilib } from '@sie-js/swilib';
-import { getLastCacheTime, getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from '../cache.js';
-import { sprintf } from 'sprintf-js';
+import { swilibConfig, getPlatformByPhone, getSwiBlib, analyzeSwilib, getGhidraSymbols, getIdaSymbols } from '@sie-js/swilib';
+import { getDataTypesHeaderCached, getLastCacheTime, getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from '../cache.js';
 import { getPatchByID } from '../utils.js';
 
 export function serverCmd({ port }) {
@@ -23,6 +22,7 @@ export function serverCmd({ port }) {
 				name: phone,
 				model: phone.split('v')[0],
 				sw: +phone.split('v')[1],
+				platform,
 			};
 			platformToPhones[platform] = platformToPhones[platform] || [];
 			platformToPhones[platform].push(phoneInfo);
@@ -73,6 +73,35 @@ export function serverCmd({ port }) {
 
 		res.set('Content-Disposition', 'attachment');
 		res.send(serializeSwilib(phone, sdklib, swilib));
+	});
+
+	// Download data types for disassembler
+	app.get('/swilib-types-:platform(ELKA|NSG|X75|SG).h', async (req, res) => {
+		let response = await getDataTypesHeaderCached(req.params.platform);
+		res.set('Content-Disposition', 'attachment');
+		res.send(response);
+	});
+
+	// Download symbols for disassembler
+	app.get('/symbols-:phone(\\w+v\\d+).:ext(idc|txt)', async (req, res) => {
+		let phone = req.params.phone;
+		if (!swilibConfig.phones.includes(phone)) {
+			res.sendStatus(404);
+			return;
+		}
+
+		let patchId = swilibConfig.patches[phone];
+		let patchFile = getPatchByID(patchId, phone);
+		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+		let sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
+
+		if (req.params.ext == 'txt') {
+			res.set('Content-Disposition', 'attachment');
+			res.send(getGhidraSymbols(phone, sdklib, swilib) + "\n");
+		} else {
+			res.set('Content-Disposition', 'attachment');
+			res.send(getIdaSymbols(phone, sdklib, swilib) + "\n");
+		}
 	});
 
 	// Get all functions (summary)

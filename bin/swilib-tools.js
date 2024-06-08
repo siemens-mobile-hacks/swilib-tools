@@ -7,6 +7,7 @@ import { checkSwilibCmd } from '../src/cli/checkSwilib.js';
 import { mergeSwilib } from '../src/cli/mergeSwilib.js';
 import { serverCmd } from '../src/cli/server.js';
 import { checkGitRepos } from '../src/utils.js';
+import { genSymbols } from '../src/cli/genSymbols.js';
 
 await yargs(hideBin(process.argv))
 	.command('check <phone> [file]', 'Check swilib.vkp for errors.', (yargs) => {
@@ -26,6 +27,15 @@ await yargs(hideBin(process.argv))
 	}, (argv) => {
 		if (checkGitRepos())
 			mergeSwilib(argv);
+	})
+	.command('gen-symbols <phone> [file]', 'Generate symbols for disassembler.', (yargs) => {
+		return yargs
+			.positional('phone', { describe: 'Phone model with sw version (e.g. EL71v45) or platform (ELKA|NSG|X75|SG' })
+			.positional('file', { describe: 'The swilib.vkp that will be checked for errors.' })
+			.option('format', { describe: 'Symbols format: ida|ghidra', default: 'ghidra' });
+	}, async (argv) => {
+		if (checkGitRepos())
+			await genSymbols(argv);
 	})
 	.command('server [port]', 'Run backend for web-dev-tools.', (yargs) => {
 		return yargs

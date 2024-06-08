@@ -1,7 +1,13 @@
 import fs from 'fs';
-import { getPlatformSwilibFromSDK, parsePatterns, parseSwilibPatch } from "@sie-js/swilib";
+import { getDataTypesHeader, getPlatformSwilibFromSDK, parsePatterns, parseSwilibPatch } from "@sie-js/swilib";
 import { SDK_DIR, CACHE_DIR, md5sum } from "./utils.js";
 import { simpleGit } from 'simple-git';
+
+export async function getDataTypesHeaderCached(platform) {
+	let git = simpleGit(SDK_DIR);
+	let revision = await git.revparse('HEAD');
+	return withCache(`data-types-${revision}-${platform}`, () => getDataTypesHeader(SDK_DIR, platform));
+}
 
 export async function parsePatternsCached(platform) {
 	let code = fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`);
