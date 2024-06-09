@@ -104,6 +104,31 @@ export function serverCmd({ port }) {
 		}
 	});
 
+	// List CPU symbols for disassembler
+	app.get('/cpu-files.json', async (req, res) => {
+		let url = "https://siemens-mobile-hacks.github.io/pmb887x-dev/index.json";
+		try {
+			let response = await fetch(url).then((res) => res.json());
+			res.send(response);
+		} catch (e) {
+			res.status(502);
+			res.send(`Failed to fetch ${url}`);
+		}
+	});
+
+	// Download CPU symbols for disassembler
+	app.get('/cpu-:cpu([a-zA-Z0-9_]+).:ext(idc|txt)', async (req, res) => {
+		let url = `https://siemens-mobile-hacks.github.io/pmb887x-dev/cpu-${req.params.cpu}.${req.params.ext}`;
+		try {
+			let response = await fetch(url).then((res) => res.text());
+			res.set('Content-Disposition', 'attachment');
+			res.send(response);
+		} catch (e) {
+			res.status(502);
+			res.send(`Failed to fetch ${url}`);
+		}
+	});
+
 	// Get all functions (summary)
 	app.get('/summary.json', async (req, res) => {
 		let response = await getFunctionsSummary();
