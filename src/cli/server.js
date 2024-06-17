@@ -71,6 +71,7 @@ export function serverCmd({ port }) {
 		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
 		let sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
 
+		res.set('Content-Type', 'text/plain');
 		res.set('Content-Disposition', 'attachment');
 		res.send(serializeSwilib(phone, sdklib, swilib));
 	});
@@ -78,6 +79,7 @@ export function serverCmd({ port }) {
 	// Download data types for disassembler
 	app.get('/swilib-types-:platform(ELKA|NSG|X75|SG).h', async (req, res) => {
 		let response = await getDataTypesHeaderCached(req.params.platform);
+		res.set('Content-Type', 'text/plain');
 		res.set('Content-Disposition', 'attachment');
 		res.send(response);
 	});
@@ -96,9 +98,11 @@ export function serverCmd({ port }) {
 		let sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
 
 		if (req.params.ext == 'txt') {
+			res.set('Content-Type', 'text/plain');
 			res.set('Content-Disposition', 'attachment');
 			res.send(getGhidraSymbols(phone, sdklib, swilib) + "\n");
 		} else {
+			res.set('Content-Type', 'text/plain');
 			res.set('Content-Disposition', 'attachment');
 			res.send(getIdaSymbols(phone, sdklib, swilib) + "\n");
 		}

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import inquirer from 'inquirer';
-import { table as asciiTable, getBorderCharacters } from 'table';
-import { analyzeSwilib, getPlatformSwilibFromSDK, parseSwilibPatch, serializeSwilib, swilibConfig } from "@sie-js/swilib";
+import { table as asciiTable } from 'table';
+import { analyzeSwilib, getPlatformByPhone, getPlatformSwilibFromSDK, parseSwilibPatch, serializeSwilib, swilibConfig } from "@sie-js/swilib";
 import { SDK_DIR } from '../utils.js';
 import chalk from 'chalk';
 import { sprintf } from 'sprintf-js';
@@ -38,7 +38,7 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 			['ID', 'Name', 'Swilib A', 'Swilib B'],
 			[
 				formatId(id),
-				formatFuncName(sdklib[id].name),
+				sdklib[id] ? formatFuncName(sdklib[id].name) : chalk.grey('/* none */'),
 				funcA?.value != null ? sprintf("%08X", funcA.value) : chalk.gray('/* none */'),
 				funcB?.value != null ? sprintf("%08X", funcB.value) : chalk.gray('/* none */'),
 			]
@@ -108,7 +108,6 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 	let summaryTable = [
 		['ID', 'Name', 'Swilib A', 'Swilib B']
 	];
-	console.log(answers);
 	for (let id in answers) {
 		id = parseInt(id);
 
@@ -117,12 +116,11 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 		let funcAStr = funcA?.value != null ? sprintf("%08X", funcA.value) : '';
 		let funcBStr = funcB?.value != null ? sprintf("%08X", funcB.value) : '';
 
-
 		if (answers[id] == -1) {
 			delete newSwilib.entries[id];
 			summaryTable.push([
 				chalk.strikethrough.red(formatId(id)),
-				chalk.strikethrough.red(formatFuncName(sdklib[id].name)),
+				chalk.strikethrough.red(sdklib[id] ? formatFuncName(sdklib[id].name) : '/* none */'),
 				chalk.strikethrough.red(funcAStr),
 				chalk.strikethrough.red(funcBStr),
 			]);
@@ -130,7 +128,7 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 			newSwilib.entries[id] = swilibs[answers[id]].entries[id];
 			summaryTable.push([
 				formatId(id),
-				formatFuncName(sdklib[id].name),
+				sdklib[id] ? formatFuncName(sdklib[id].name) : chalk.grey('/* none */'),
 				answers[id] == 0 ? chalk.bold.green(funcAStr) : chalk.gray(funcAStr),
 				answers[id] == 1 ? chalk.bold.green(funcBStr) : chalk.gray(funcBStr),
 			]);

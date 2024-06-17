@@ -43,15 +43,17 @@ export async function checkSwilibCmd({ file, phone }) {
 			[chalk.bold('ID'), chalk.bold('Name'), chalk.bold(`Notes`)]
 		];
 		for (let id of analysis.missing) {
+			let func = sdklib[id];
+
 			let notes = [];
 
 			if (patterns[id]?.pattern)
 				notes.push(chalk.green('has pattern'));
 
-			if (swilibConfig.fromPatches.includes(id))
+			if (func?.files.includes('swilib/patch.h'))
 				notes.push(chalk.red('patch'));
 
-			if (swilibConfig.platformDependentFunctions[id] && !swilibConfig.platformDependentFunctions[id].includes(platform))
+			if (func?.platforms && !func.platforms.includes(platform))
 				notes.push(chalk.grey('not available'));
 
 			let row = [
