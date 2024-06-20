@@ -15,7 +15,7 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 
 	let maxFunctionId = 0;
 	for (let code of [ fs.readFileSync(file_a), fs.readFileSync(file_b) ]) {
-		let swilib = parseSwilibPatch(code);
+		let swilib = parseSwilibPatch(code, { comments: true });
 		swilibs.push(swilib);
 		analysis.push(analyzeSwilib(platform, sdklib, swilib));
 		maxFunctionId = Math.max(swilib.entries.length, maxFunctionId);
@@ -101,8 +101,8 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 	}
 
 	let newSwilib = {
-		offset: swilibs[0].offset,
-		entries: [...swilibs[0].entries],
+		offset: swilibs[1].offset,
+		entries: [...swilibs[1].entries],
 	};
 
 	let summaryTable = [
@@ -125,7 +125,11 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 				chalk.strikethrough.red(funcBStr),
 			]);
 		} else {
-			newSwilib.entries[id] = swilibs[answers[id]].entries[id];
+			if (newSwilib.entries[id]?.value !== swilibs[answers[id]].entries[id].value) {
+				newSwilib.entries[id] = swilibs[answers[id]].entries[id];
+				delete newSwilib.entries[id].comment;
+			}
+
 			summaryTable.push([
 				formatId(id),
 				sdklib[id] ? formatFuncName(sdklib[id].name) : chalk.grey('/* none */'),

@@ -1,0 +1,5 @@
+GetImgWidth - bad patterns (C81 - a096bb96)
+rand - bad patterns (C81 - a0ab4274)
+RamDateTime - bad patterns, unknown shit
+RamIsStandby - bad patterns, unknown shit
+RamIsShutdown - bad patterns (C81 - A8E2CAC8)
