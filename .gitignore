@@ -1,6 +1,7 @@
 # tmp
 cache/
 *.vkp
+*.diff
 
 # Logs
 logs
