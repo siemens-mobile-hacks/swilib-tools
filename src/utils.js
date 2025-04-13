@@ -7,7 +7,7 @@ import { globSync } from 'glob';
 export const ROOT_DIR = path.resolve(`${import.meta.dirname}/../`);
 export const CACHE_DIR = path.resolve(`${ROOT_DIR}/cache`);
 export const PATCHES_DIR = path.resolve(`${ROOT_DIR}/../patches`);
-export const SDK_DIR = path.resolve(`${ROOT_DIR}/../sdk`);
+export const SDK_DIR = path.resolve(`${ROOT_DIR}/../../sdk`);
 
 export function getPatchByID(id, model) {
 	let [patchFile] = globSync(`${PATCHES_DIR}/patches/${model || '*'}/${id}-*.vkp`);

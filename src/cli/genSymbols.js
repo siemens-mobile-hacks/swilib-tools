@@ -3,7 +3,8 @@ import { getDataTypesHeader, getGhidraSymbols, getIdaSymbols, getPlatformByPhone
 import { SDK_DIR, getPatchByID } from "../utils.js";
 import { getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from "../cache.js";
 
-export async function genSymbols({ phone, file, format }) {let platform;
+export async function genSymbols({ phone, file, format }) {
+	let platform;
 	if (swilibConfig.platforms.includes(phone)) {
 		platform = phone;
 	} else {

@@ -8,6 +8,8 @@ import { mergeSwilib } from '../src/cli/mergeSwilib.js';
 import { serverCmd } from '../src/cli/server.js';
 import { checkGitRepos } from '../src/utils.js';
 import { genSymbols } from '../src/cli/genSymbols.js';
+import { genSimulatorApi } from '../src/cli/genSimulatorApi.js';
+import { genAsmSymbols } from '../src/cli/genAsmSymbols.js';
 
 await yargs(hideBin(process.argv))
 	.command('check <phone> [file]', 'Check swilib.vkp for errors.', (yargs) => {
@@ -30,12 +32,26 @@ await yargs(hideBin(process.argv))
 	})
 	.command('gen-symbols <phone> [file]', 'Generate symbols for disassembler.', (yargs) => {
 		return yargs
-			.positional('phone', { describe: 'Phone model with sw version (e.g. EL71v45) or platform (ELKA|NSG|X75|SG' })
+			.positional('phone', { describe: 'Phone model with sw version (e.g. EL71v45) or platform (ELKA|NSG|X75|SG)' })
 			.positional('file', { describe: 'The swilib.vkp that will be checked for errors.' })
 			.option('format', { describe: 'Symbols format: ida|ghidra', default: 'ghidra' });
 	}, async (argv) => {
 		if (checkGitRepos())
 			await genSymbols(argv);
+	})
+	.command('gen-simulator-api <dir>', 'Generate API for simulator.', (yargs) => {
+		return yargs
+			.positional('dir', { describe: 'Path to simulator sources dir.' })
+	}, async (argv) => {
+		if (checkGitRepos())
+			await genSimulatorApi(argv);
+	})
+	.command('gen-asm-symbols <dir>', 'Generate ASM symbols for SDK.', (yargs) => {
+		return yargs
+		.positional('dir', { describe: 'Path to symbols dir.' })
+	}, async (argv) => {
+		if (checkGitRepos())
+			await genAsmSymbols(argv);
 	})
 	.command('server [port]', 'Run backend for web-dev-tools.', (yargs) => {
 		return yargs
