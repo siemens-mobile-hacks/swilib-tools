@@ -6,7 +6,7 @@ import { sprintf } from 'sprintf-js';
 
 export async function genSimulatorApi({ dir }) {
 	// ELKA, NSG, X75, SG
-	let phones = ['EL71v45', 'C81v51', 'CX75v25', 'S65v58'];
+	const phones = ['EL71v45', 'C81v51', 'CX75v25', 'S65v58'];
 	let stubs = [];
 	let table = [];
 	let unimplemented = {};
@@ -21,14 +21,14 @@ export async function genSimulatorApi({ dir }) {
 
 	let allFunctions = [];
 	for (let phone of phones) {
-		let platform = getPlatformByPhone(phone);
-		let sdklib = await getPlatformSwilibFromSDKCached(platform);
+		const platform = getPlatformByPhone(phone);
+		const sdklib = await getPlatformSwilibFromSDKCached(platform);
 		for (let id = 0; id < sdklib.length; id++)
 			allFunctions[id] = allFunctions[id] ?? sdklib[id];
 	}
 
 	for (let id = 0; id < allFunctions.length; id++) {
-		let func = allFunctions[id];
+		const func = allFunctions[id];
 		if (!func)
 			continue;
 
@@ -38,10 +38,10 @@ export async function genSimulatorApi({ dir }) {
 		if (func.files.indexOf('swilib/legacy.h') >= 0)
 			continue;
 
-		let underscore = [
+		const underscore = [
 			"dlopen", "dlsym", "dlclose", "dlerror", "longjmp", "setjmp"
 		];
-		let builtin = [
+		const builtin = [
 			"strchr", "memchr", "strpbrk", "strrchr", "strstr"
 		];
 
@@ -49,7 +49,7 @@ export async function genSimulatorApi({ dir }) {
 			func.name = func.name.replaceAll(func.symbol + '(', 'bsd_' + func.symbol + '(');
 			func.symbol = "bsd_" + func.symbol;
 
-			let replaces = {
+			const replaces = {
 				'in_port_t':				'bsd_in_port_t',
 				'sa_family_t':				'bsd_sa_family_t',
 				'in_addr_t':				'bsd_in_addr_t',
@@ -60,7 +60,7 @@ export async function genSimulatorApi({ dir }) {
 			};
 
 			for (let k in replaces) {
-				let v = replaces[k];
+				const v = replaces[k];
 				func.name = func.name.replace(new RegExp(k, 'g'), v);
 			}
 		} else if (underscore.includes(func.symbol)) {
@@ -73,10 +73,10 @@ export async function genSimulatorApi({ dir }) {
 		if (func.type == SwiType.VALUE) {
 			let platformValues = {};
 			for (let phone of phones) {
-				let platform = getPlatformByPhone(phone);
-				let patchId = swilibConfig.patches[phone];
-				let file = getPatchByID(patchId);
-				let swilib = await parseSwilibPatchCached(fs.readFileSync(file));
+				const platform = getPlatformByPhone(phone);
+				const patchId = swilibConfig.patches[phone];
+				const file = getPatchByID(patchId);
+				const swilib = await parseSwilibPatchCached(fs.readFileSync(file));
 				platformValues[platform] = swilib.entries[id]?.value;
 			}
 
@@ -102,7 +102,7 @@ export async function genSimulatorApi({ dir }) {
 		}
 
 		if (!returnCode) {
-			let returnType = parseReturnType(func.name).trim();
+			const returnType = parseReturnType(func.name).trim();
 			if (returnType == "void") {
 				// nothing
 			} else if (returnType.match(/^(int\d+_t|int|short|char|long|ssize_t)$/)) {
@@ -117,7 +117,7 @@ export async function genSimulatorApi({ dir }) {
 		}
 
 		if (!builtin.includes(func.symbol)) {
-			let fileId = func.files[0];
+			const fileId = func.files[0];
 			unimplemented[fileId] = unimplemented[fileId] || [];
 
 			unimplemented[fileId].push(
@@ -179,7 +179,7 @@ export async function genSimulatorApi({ dir }) {
 
 function parseReturnType(def) {
 	def = def.replace(/\s+/g, ' ').trim();
-	let m = def.match(/^(.*?\s?[*]?)([\w\d_]+)\(.*?\)$/i);
+	const m = def.match(/^(.*?\s?[*]?)([\w\d_]+)\(.*?\)$/i);
 	if (!m)
 		throw new Error(`Can't parse C definition: ${def}`);
 	return m[1].trim();

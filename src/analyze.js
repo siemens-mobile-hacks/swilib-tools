@@ -10,19 +10,19 @@ export const SwiFlags = {
 };
 
 export async function getPhoneSwilib(phone) {
-	let patchId = swilibConfig.patches[phone];
-	let patchFile = getPatchByID(patchId, phone);
-	let platform = getPlatformByPhone(phone);
-	let sdklib = await getPlatformSwilibFromSDKCached(platform);
+	const patchId = swilibConfig.patches[phone];
+	const patchFile = getPatchByID(patchId, phone);
+	const platform = getPlatformByPhone(phone);
+	const sdklib = await getPlatformSwilibFromSDKCached(platform);
 
-	let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
-	let analysis = analyzeSwilib(platform, sdklib, swilib);
+	const swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+	const analysis = analyzeSwilib(platform, sdklib, swilib);
 
 	swilib.entries[sdklib.length - 1] = swilib.entries[sdklib.length - 1] || undefined;
 
-	let swilibEntries = [];
+	const swilibEntries = [];
 	for (let id = 0; id < sdklib.length; id++) {
-		let entry = {
+		const entry = {
 			id: id,
 			symbol: swilib.entries[id]?.symbol,
 			value: swilib.entries[id]?.value,
@@ -36,8 +36,8 @@ export async function getPhoneSwilib(phone) {
 }
 
 export async function getPatternsSummary() {
-	let platformToLib = {};
-	let platformToPatterns = {};
+	const platformToLib = {};
+	const platformToPatterns = {};
 	let maxFunctionId = 0;
 
 	for (let platform of swilibConfig.platforms) {
@@ -46,14 +46,14 @@ export async function getPatternsSummary() {
 		maxFunctionId = Math.max(maxFunctionId, platformToLib[platform].length);
 	}
 
-	let allPatterns = [];
+	const allPatterns = [];
 	for (let id = 0; id < maxFunctionId; id++) {
-		let func = platformToLib.ELKA[id] || platformToLib.NSG[id] || platformToLib.X75[id] || platformToLib.SG[id];
-		let ptr = platformToPatterns.ELKA[id] || platformToPatterns.NSG[id] || platformToPatterns.X75[id] || platformToPatterns.SG[id];
+		const func = platformToLib.ELKA[id] || platformToLib.NSG[id] || platformToLib.X75[id] || platformToLib.SG[id];
+		const ptr = platformToPatterns.ELKA[id] || platformToPatterns.NSG[id] || platformToPatterns.X75[id] || platformToPatterns.SG[id];
 
-		let coverage = [];
+		const coverage = [];
 		for (let platform of swilibConfig.platforms) {
-			let patterns = platformToPatterns[platform];
+			const patterns = platformToPatterns[platform];
 			if (func?.builtin?.includes(platform)) {
 				coverage.push(200); // special value "builtin"
 			} else if (func.platforms && !func.platforms.includes(platform)) {
@@ -88,19 +88,19 @@ export async function getFunctionsSummary() {
 		maxFunctionId = Math.max(maxFunctionId, platformToLib[platform].length);
 	}
 
-	let dirtyEntries = {};
+	const dirtyEntries = {};
 	for (let phone of swilibConfig.phones) {
-		let patchId = swilibConfig.patches[phone];
-		let patchFile = getPatchByID(patchId, phone);
-		let platform = getPlatformByPhone(phone);
-		let sdklib = platformToLib[platform];
+		const patchId = swilibConfig.patches[phone];
+		const patchFile = getPatchByID(patchId, phone);
+		const platform = getPlatformByPhone(phone);
+		const sdklib = platformToLib[platform];
 
-		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
-		let { missing, errors } = analyzeSwilib(platform, sdklib, swilib);
+		const swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+		const { missing, errors } = analyzeSwilib(platform, sdklib, swilib);
 
 		let goodFunctionsCnt = 0;
 		for (let id = 0; id < sdklib.length; id++) {
-			let func = sdklib[id];
+			const func = sdklib[id];
 			if (func) {
 				coverage[platform] = coverage[platform] || {};
 				coverage[platform][id] = coverage[platform][id] || { ok: 0, bad: 0 };
@@ -130,13 +130,13 @@ export async function getFunctionsSummary() {
 		phonesCoverage[phone] = +(goodFunctionsCnt / sdklib.length * 100).toFixed(1);
 	}
 
-	let allFunctions = [];
+	const allFunctions = [];
 	for (let id = 0; id < maxFunctionId; id++) {
-		let func = platformToLib.ELKA[id] || platformToLib.NSG[id] || platformToLib.X75[id] || platformToLib.SG[id];
+		const func = platformToLib.ELKA[id] || platformToLib.NSG[id] || platformToLib.X75[id] || platformToLib.SG[id];
 		if (func) {
-			let allPossibleAliases = [];
+			const allPossibleAliases = [];
 			for (let platform of swilibConfig.platforms) {
-				let sdklib = platformToLib[platform];
+				const sdklib = platformToLib[platform];
 				if (sdklib[id]) {
 					allPossibleAliases.push(sdklib[id].symbol);
 					for (let aliasName of sdklib[id].aliases)
@@ -149,17 +149,17 @@ export async function getFunctionsSummary() {
 					allPossibleAliases.push(aliasName);
 			}
 
-			let aliases = [];
+			const aliases = [];
 			for (let aliasName of allPossibleAliases) {
 				if (aliasName != func.symbol && !isStrInArray(aliases, aliasName))
 					aliases.push(aliasName);
 			}
 
-			let functionCoverage = [];
-			let patternCovarage = [];
-			let patterns = [];
+			const functionCoverage = [];
+			const patternCovarage = [];
+			const patterns = [];
 			for (let platform of swilibConfig.platforms) {
-				let ptrlib = platformToPatterns[platform];
+				const ptrlib = platformToPatterns[platform];
 				if (func.builtin?.includes(platform)) {
 					functionCoverage.push(200); // special value "builtin"
 					patternCovarage.push(200); // special value "builtin"
@@ -167,7 +167,7 @@ export async function getFunctionsSummary() {
 					functionCoverage.push(-200); // special value "not available"
 					patternCovarage.push(-200); // special value "builtin"
 				} else {
-					let coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
+					const coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
 					functionCoverage.push(+coveragePct.toFixed(1));
 					patternCovarage.push(ptrlib[id]?.pattern != null ? 100 : 0);
 				}
@@ -183,9 +183,9 @@ export async function getFunctionsSummary() {
 			if (dirtyEntries[id])
 				flags |= SwiFlags.DIRTY;
 
-			let file = func.files[0];
+			const file = func.files[0];
 
-			let funcInfo = {
+			const funcInfo = {
 				id,
 				name: func.name,
 				aliases,
@@ -202,8 +202,8 @@ export async function getFunctionsSummary() {
 			if (dirtyEntries[id])
 				flags |= SwiFlags.DIRTY;
 
-			let file = "swilib/unused.h";
-			let funcInfo = {
+			const file = "swilib/unused.h";
+			const funcInfo = {
 				id,
 				name: null,
 				aliases: [],

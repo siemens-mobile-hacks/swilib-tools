@@ -7,15 +7,15 @@ import { getPlatformByPhone } from '@sie-js/swilib';
 
 const HTTP_PORT = 4000;
 
-let app = express()
+const app = express()
 app.use(cors());
 app.use(compression());
 
 // Get phones list
 app.get('/phones.json', (req, res) => {
-	let platformToPhones = {};
+	const platformToPhones = {};
 	for (let phone of SWI_CONFIG.phones) {
-		let platform = getPlatformByPhone(phone);
+		const platform = getPlatformByPhone(phone);
 		platformToPhones[platform] = platformToPhones[platform] || [];
 		platformToPhones[platform].push(phone);
 	}
@@ -24,7 +24,7 @@ app.get('/phones.json', (req, res) => {
 
 // Get all functions (summary)
 app.get('/functions.json', (req, res) => {
-	let summary = getFunctionsSummary();
+	const summary = getFunctionsSummary();
 	res.send({
 		files: summary.functionsByFile,
 		functionsByPhone: summary.functionsByPhone,
@@ -34,7 +34,7 @@ app.get('/functions.json', (req, res) => {
 });
 
 app.get('/functions-summary-by-file.json', (req, res) => {
-	let summary = getFunctionsSummary();
+	const summary = getFunctionsSummary();
 	res.send({
 		files: summary.functionsByFile,
 		functionsByPhone: summary.functionsByPhone,

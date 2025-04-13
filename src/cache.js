@@ -4,30 +4,30 @@ import { SDK_DIR, CACHE_DIR, md5sum } from "./utils.js";
 import { simpleGit } from 'simple-git';
 
 export async function getDataTypesHeaderCached(platform) {
-	let git = simpleGit(SDK_DIR);
-	let revision = await git.revparse('HEAD');
+	const git = simpleGit(SDK_DIR);
+	const revision = await git.revparse('HEAD');
 	return withCache(`data-types-${revision}-${platform}`, () => getDataTypesHeader(SDK_DIR, platform));
 }
 
 export async function parsePatternsCached(platform) {
-	let code = fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`);
-	let hash = md5sum(code);
+	const code = fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`);
+	const hash = md5sum(code);
 	return withCache(`patterns-${hash}`, () => parsePatterns(code));
 }
 
 export async function parseSwilibPatchCached(code) {
-	let hash = md5sum(code);
+	const hash = md5sum(code);
 	return withCache(`swilib-${hash}`, () => parseSwilibPatch(code));
 }
 
 export async function getPlatformSwilibFromSDKCached(platform) {
-	let git = simpleGit(SDK_DIR);
-	let revision = await git.revparse('HEAD');
+	const git = simpleGit(SDK_DIR);
+	const revision = await git.revparse('HEAD');
 	return withCache(`sdk-${revision}-${platform}`, () => getPlatformSwilibFromSDK(SDK_DIR, platform));
 }
 
 export function withCache(key, getValue) {
-	let cacheFile = `${CACHE_DIR}/${key}.json`;
+	const cacheFile = `${CACHE_DIR}/${key}.json`;
 	if (fs.existsSync(cacheFile)) {
 		try {
 			return JSON.parse(fs.readFileSync(cacheFile));
@@ -37,7 +37,7 @@ export function withCache(key, getValue) {
 	if (!fs.existsSync(CACHE_DIR))
 		fs.mkdirSync(CACHE_DIR, { recursive: true });
 
-	let value = getValue();
+	const value = getValue();
 	fs.writeFileSync(cacheFile, JSON.stringify(value));
 	return value;
 }

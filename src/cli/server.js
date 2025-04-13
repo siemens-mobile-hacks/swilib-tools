@@ -8,7 +8,7 @@ import { getDataTypesHeaderCached, getLastCacheTime, getPlatformSwilibFromSDKCac
 import { getPatchByID } from '../utils.js';
 
 export function serverCmd({ port }) {
-	let app = express()
+	const app = express()
 	app.use(cors());
 	app.use(compression());
 
@@ -17,8 +17,8 @@ export function serverCmd({ port }) {
 		let platformToPhones = {};
 		let phones = [];
 		for (let phone of swilibConfig.phones) {
-			let platform = getPlatformByPhone(phone);
-			let phoneInfo = {
+			const platform = getPlatformByPhone(phone);
+			const phoneInfo = {
 				name: phone,
 				model: phone.split('v')[0],
 				sw: +phone.split('v')[1],
@@ -36,40 +36,40 @@ export function serverCmd({ port }) {
 
 	// Analyze swilib
 	app.get('/:phone(\\w+v\\d+).json', async (req, res) => {
-		let phone = req.params.phone;
+		const phone = req.params.phone;
 		if (!swilibConfig.phones.includes(phone)) {
 			res.sendStatus(404);
 			return;
 		}
-		let response = await getPhoneSwilib(phone);
+		const response = await getPhoneSwilib(phone);
 		res.send(response);
 	});
 
 	// Download blib
 	app.get('/:phone(\\w+v\\d+).blib', async (req, res) => {
-		let phone = req.params.phone;
+		const phone = req.params.phone;
 		if (!swilibConfig.phones.includes(phone)) {
 			res.sendStatus(404);
 			return;
 		}
-		let patchId = swilibConfig.patches[phone];
-		let patchFile = getPatchByID(patchId, phone);
-		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+		const patchId = swilibConfig.patches[phone];
+		const patchFile = getPatchByID(patchId, phone);
+		const swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
 		res.send(getSwiBlib(swilib));
 	});
 
 	// Download vkp
 	app.get('/:phone(\\w+v\\d+).vkp', async (req, res) => {
-		let phone = req.params.phone;
+		const phone = req.params.phone;
 		if (!swilibConfig.phones.includes(phone)) {
 			res.sendStatus(404);
 			return;
 		}
 
-		let patchId = swilibConfig.patches[phone];
-		let patchFile = getPatchByID(patchId, phone);
-		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
-		let sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
+		const patchId = swilibConfig.patches[phone];
+		const patchFile = getPatchByID(patchId, phone);
+		const swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+		const sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
 
 		res.set('Content-Type', 'text/plain');
 		res.set('Content-Disposition', 'attachment');
@@ -78,7 +78,7 @@ export function serverCmd({ port }) {
 
 	// Download data types for disassembler
 	app.get('/swilib-types-:platform(ELKA|NSG|X75|SG).h', async (req, res) => {
-		let response = await getDataTypesHeaderCached(req.params.platform);
+		const response = await getDataTypesHeaderCached(req.params.platform);
 		res.set('Content-Type', 'text/plain');
 		res.set('Content-Disposition', 'attachment');
 		res.send(response);
@@ -86,16 +86,16 @@ export function serverCmd({ port }) {
 
 	// Download symbols for disassembler
 	app.get('/symbols-:phone(\\w+v\\d+).:ext(idc|txt)', async (req, res) => {
-		let phone = req.params.phone;
+		const phone = req.params.phone;
 		if (!swilibConfig.phones.includes(phone)) {
 			res.sendStatus(404);
 			return;
 		}
 
-		let patchId = swilibConfig.patches[phone];
-		let patchFile = getPatchByID(patchId, phone);
-		let swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
-		let sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
+		const patchId = swilibConfig.patches[phone];
+		const patchFile = getPatchByID(patchId, phone);
+		const swilib = await parseSwilibPatchCached(fs.readFileSync(patchFile));
+		const sdklib = await getPlatformSwilibFromSDKCached(getPlatformByPhone(phone));
 
 		if (req.params.ext == 'txt') {
 			res.set('Content-Type', 'text/plain');
@@ -110,9 +110,9 @@ export function serverCmd({ port }) {
 
 	// List CPU symbols for disassembler
 	app.get('/cpu-files.json', async (req, res) => {
-		let url = "https://siemens-mobile-hacks.github.io/pmb887x-dev/index.json";
+		const url = "https://siemens-mobile-hacks.github.io/pmb887x-dev/index.json";
 		try {
-			let response = await fetch(url).then((res) => res.json());
+			const response = await fetch(url).then((res) => res.json());
 			res.send(response);
 		} catch (e) {
 			res.status(502);
@@ -122,9 +122,9 @@ export function serverCmd({ port }) {
 
 	// Download CPU symbols for disassembler
 	app.get('/cpu-:cpu([a-zA-Z0-9_]+).:ext(idc|txt)', async (req, res) => {
-		let url = `https://siemens-mobile-hacks.github.io/pmb887x-dev/cpu-${req.params.cpu}.${req.params.ext}`;
+		const url = `https://siemens-mobile-hacks.github.io/pmb887x-dev/cpu-${req.params.cpu}.${req.params.ext}`;
 		try {
-			let response = await fetch(url).then((res) => res.text());
+			const response = await fetch(url).then((res) => res.text());
 			res.set('Content-Disposition', 'attachment');
 			res.send(response);
 		} catch (e) {
@@ -135,7 +135,7 @@ export function serverCmd({ port }) {
 
 	// Get all functions (summary)
 	app.get('/summary.json', async (req, res) => {
-		let response = await getFunctionsSummary();
+		const response = await getFunctionsSummary();
 		res.send(response);
 	});
 

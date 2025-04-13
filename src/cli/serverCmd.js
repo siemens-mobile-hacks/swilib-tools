@@ -6,7 +6,7 @@ import { swilibConfig, getPlatformByPhone, getSwiBlib } from '@sie-js/swilib';
 
 
 export function serverCmd({ port }) {
-    let app = express();
+    const app = express();
     app.use(cors());
     app.use(compression());
 
@@ -15,8 +15,8 @@ export function serverCmd({ port }) {
         let platformToPhones = {};
         let phones = [];
         for (let phone of swilibConfig.phones) {
-            let platform = getPlatformByPhone(phone);
-            let phoneInfo = {
+            const platform = getPlatformByPhone(phone);
+            const phoneInfo = {
                 name: phone,
                 model: phone.split('v')[0],
                 sw: +phone.split('v')[1],
@@ -33,18 +33,18 @@ export function serverCmd({ port }) {
 
     // Analyze swilib
     app.get('/:phone(\\w+v\\d+).json', async (req, res) => {
-        let phone = req.params.phone;
+        const phone = req.params.phone;
         if (!swilibConfig.phones.includes(phone)) {
             res.sendStatus(404);
             return;
         }
-        let response = await getPhoneSwilib(phone);
+        const response = await getPhoneSwilib(phone);
         res.send(response);
     });
 
     // Download blib
     app.get('/:phone(\\w+v\\d+).blib', async (req, res) => {
-        let phone = req.params.phone;
+        const phone = req.params.phone;
         if (!swilibConfig.phones.includes(phone)) {
             res.sendStatus(404);
             return;
@@ -54,7 +54,7 @@ export function serverCmd({ port }) {
 
 	// Download vkp
 	app.get('/:phone(\\w+v\\d+).blib', async (req, res) => {
-		let phone = req.params.phone;
+		const phone = req.params.phone;
 		if (!swilibConfig.phones.includes(phone)) {
 			res.sendStatus(404);
 			return;
@@ -64,7 +64,7 @@ export function serverCmd({ port }) {
 
     // Get all functions (summary)
     app.get('/summary.json', async (req, res) => {
-        let response = await getFunctionsSummary();
+        const response = await getFunctionsSummary();
         res.send(response);
     });
 

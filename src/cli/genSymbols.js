@@ -10,7 +10,7 @@ export async function genSymbols({ phone, file, format }) {
 	} else {
 		platform = getPlatformByPhone(phone);
 		if (!file && swilibConfig.patches[phone]) {
-			let patchId = swilibConfig.patches[phone];
+			const patchId = swilibConfig.patches[phone];
 			file = getPatchByID(patchId);
 		}
 	}
@@ -20,8 +20,8 @@ export async function genSymbols({ phone, file, format }) {
 		return;
 	}
 
-	let swilib = await parseSwilibPatchCached(fs.readFileSync(file));
-	let sdklib = await getPlatformSwilibFromSDKCached(platform);
+	const swilib = await parseSwilibPatchCached(fs.readFileSync(file));
+	const sdklib = await getPlatformSwilibFromSDKCached(platform);
 
 	if (format == 'ida') {
 		console.log(getIdaSymbols(phone, sdklib, swilib));

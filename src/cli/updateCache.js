@@ -16,7 +16,7 @@ export async function updateCacheCmd(argv) {
 async function precacheAll() {
 	console.log(`Precache swilib's...`);
 	for (let phone in swilibConfig.patches) {
-		let patchId = swilibConfig.patches[phone];
+		const patchId = swilibConfig.patches[phone];
 		parseSwilibPatchCached(fs.readFileSync(getPatchByID(patchId)));
 	}
 
@@ -29,7 +29,7 @@ async function precacheAll() {
 
 async function syncGitRepos() {
 	for (let repo of [SDK_DIR, PATCHES_DIR]) {
-		let git = simpleGit(repo);
+		const git = simpleGit(repo);
 		git.outputHandler((command, stdout, stderr) => {
 			stdout.pipe(process.stdout);
 			stderr.pipe(process.stderr);

@@ -7,15 +7,15 @@ import chalk from 'chalk';
 import { sprintf } from 'sprintf-js';
 
 export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) {
-	let platform = swilibConfig.platforms.includes(phone) ? phone : getPlatformByPhone(phone);
-	let sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
+	const platform = swilibConfig.platforms.includes(phone) ? phone : getPlatformByPhone(phone);
+	const sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
 
 	let analysis = [];
 	let swilibs = [];
 
 	let maxFunctionId = 0;
 	for (let code of [ fs.readFileSync(file_a), fs.readFileSync(file_b) ]) {
-		let swilib = parseSwilibPatch(code, { comments: true });
+		const swilib = parseSwilibPatch(code, { comments: true });
 		swilibs.push(swilib);
 		analysis.push(analyzeSwilib(platform, sdklib, swilib));
 		maxFunctionId = Math.max(swilib.entries.length, maxFunctionId);
@@ -28,8 +28,8 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 
 	let answers = {};
 	for (let id = 0; id < maxFunctionId; id++) {
-		let funcA = swilibs[0].entries[id];
-		let funcB = swilibs[1].entries[id];
+		const funcA = swilibs[0].entries[id];
+		const funcB = swilibs[1].entries[id];
 
 		if (!funcA && !funcB)
 			continue;
