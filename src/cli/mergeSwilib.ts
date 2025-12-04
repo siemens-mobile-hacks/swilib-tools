@@ -2,20 +2,46 @@ import fs from 'fs';
 import inquirer from 'inquirer';
 import { table as asciiTable } from 'table';
 import { analyzeSwilib, getPlatformByPhone, getPlatformSwilibFromSDK, parseSwilibPatch, serializeSwilib, swilibConfig } from "@sie-js/swilib";
-import { SDK_DIR } from '../utils.js';
+import { SDK_DIR } from '../utils';
 import chalk from 'chalk';
 import { sprintf } from 'sprintf-js';
 
-export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) {
+interface MergeSwilibOptions {
+    phone: string;
+    file_a: string;
+    file_b: string;
+    new_file: string;
+}
+
+interface SwilibEntry {
+    symbol?: string;
+    value?: number | string;
+    comment?: string;
+}
+
+interface SwilibPatch {
+    offset: number;
+    entries: (SwilibEntry | undefined)[];
+}
+
+interface SwilibFunction {
+    name?: string;
+}
+
+interface SwilibAnalysis {
+    errors: Record<string, string>;
+}
+
+export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }: MergeSwilibOptions): Promise<void> {
 	const platform = swilibConfig.platforms.includes(phone) ? phone : getPlatformByPhone(phone);
 	const sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
 
-	let analysis = [];
-	let swilibs = [];
+	let analysis: SwilibAnalysis[] = [];
+	let swilibs: SwilibPatch[] = [];
 
 	let maxFunctionId = 0;
 	for (let code of [ fs.readFileSync(file_a), fs.readFileSync(file_b) ]) {
-		const swilib = parseSwilibPatch(code, { comments: true });
+		const swilib = parseSwilibPatch(code, { comments: true }) as SwilibPatch;
 		swilibs.push(swilib);
 		analysis.push(analyzeSwilib(platform, sdklib, swilib));
 		maxFunctionId = Math.max(swilib.entries.length, maxFunctionId);
@@ -26,7 +52,7 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 		return;
 	}
 
-	let answers = {};
+	let answers: Record<string, number> = {};
 	for (let id = 0; id < maxFunctionId; id++) {
 		const funcA = swilibs[0].entries[id];
 		const funcB = swilibs[1].entries[id];
@@ -44,7 +70,7 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 			]
 		];
 
-		let isValid = (index) => {
+		let isValid = (index: number): boolean => {
 			if (analysis[index].errors[id])
 				return false;
 			if (swilibs[index].entries[id]?.value == null)
@@ -68,20 +94,20 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 			needMerge = true;
 		} else if ((funcA && !funcB) || (!funcA && funcB)) {
 			needMerge = false;
-			answers[id] = funcA ? 0 : 1;
-		} else if (funcA.value != funcB.value) {
+			answers[id.toString()] = funcA ? 0 : 1;
+		} else if (funcA && funcB && funcA.value != funcB.value) {
 			console.log(asciiTable(table).trim());
 			needMerge = true;
 		}
 
 		if (needMerge) {
 			let choices = [];
-			if (isValid(0)) {
+			if (isValid(0) && funcA) {
 				choices.push({ name: 'Swilib A: ' + sprintf("%08X", funcA.value), value: 0 });
 			} else {
 				choices.push({ name: 'Swilib A: not available', disabled: true });
 			}
-			if (isValid(1)) {
+			if (isValid(1) && funcB) {
 				choices.push({ name: 'Swilib B: ' + sprintf("%08X", funcB.value), value: 1 });
 			} else {
 				choices.push({ name: 'Swilib B: not available', disabled: true });
@@ -100,7 +126,7 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 		}
 	}
 
-	let newSwilib = {
+	let newSwilib: SwilibPatch = {
 		offset: swilibs[1].offset,
 		entries: [...swilibs[1].entries],
 	};
@@ -108,15 +134,15 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 	let summaryTable = [
 		['ID', 'Name', 'Swilib A', 'Swilib B']
 	];
-	for (let id in answers) {
-		id = parseInt(id);
+	for (let idStr in answers) {
+		const id = parseInt(idStr);
 
 		let funcA = swilibs[0].entries[id];
 		let funcB = swilibs[1].entries[id];
 		let funcAStr = funcA?.value != null ? sprintf("%08X", funcA.value) : '';
 		let funcBStr = funcB?.value != null ? sprintf("%08X", funcB.value) : '';
 
-		if (answers[id] == -1) {
+		if (answers[idStr] == -1) {
 			delete newSwilib.entries[id];
 			summaryTable.push([
 				chalk.strikethrough.red(formatId(id)),
@@ -125,36 +151,39 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }) 
 				chalk.strikethrough.red(funcBStr),
 			]);
 		} else {
-			if (newSwilib.entries[id]?.value !== swilibs[answers[id]].entries[id].value) {
-				newSwilib.entries[id] = swilibs[answers[id]].entries[id];
-				delete newSwilib.entries[id].comment;
+			const selectedIndex = answers[idStr];
+			if (newSwilib.entries[id]?.value !== swilibs[selectedIndex].entries[id]?.value) {
+				newSwilib.entries[id] = swilibs[selectedIndex].entries[id];
+				if (newSwilib.entries[id]) {
+					delete newSwilib.entries[id].comment;
+				}
 			}
 
 			summaryTable.push([
 				formatId(id),
 				sdklib[id] ? formatFuncName(sdklib[id].name) : chalk.grey('/* none */'),
-				answers[id] == 0 ? chalk.bold.green(funcAStr) : chalk.gray(funcAStr),
-				answers[id] == 1 ? chalk.bold.green(funcBStr) : chalk.gray(funcBStr),
+				answers[idStr] == 0 ? chalk.bold.green(funcAStr) : chalk.gray(funcAStr),
+				answers[idStr] == 1 ? chalk.bold.green(funcBStr) : chalk.gray(funcBStr),
 			]);
 		}
 	}
 
 	console.log(asciiTable(summaryTable).trim());
 
-	fs.writeFileSync(newFile, serializeSwilib(phone, sdklib, newSwilib))
+	fs.writeFileSync(newFile, serializeSwilib(phone, sdklib, newSwilib));
 }
 
-function formatFuncName(signature) {
+function formatFuncName(signature?: string): string {
 	if (!signature)
 		return chalk.gray('// unused');
-	let m = signature.trim().match(/^(.*?)\s+([*]+)?([\w\d]+)\s*\((.+?)?\)$/is);
+	const m = signature.trim().match(/^(.*?)\s+([*]+)?([\w\d]+)\s*\((.+?)?\)$/is);
 	if (m) {
-		let args = m[4] != "" && m[4] != "void" ? "…" : "void";
+		const args = m[4] != "" && m[4] != "void" ? "…" : "void";
 		return `${m[1]} ${m[2] || ''}${chalk.bold(m[3])}${chalk.gray('(' + args + ')')}`;
 	}
 	return signature;
 }
 
-function formatId(id) {
-	return (+id).toString(16).padStart(3, 0).toUpperCase();
+function formatId(id: number): string {
+	return id.toString(16).padStart(3, '0').toUpperCase();
 }

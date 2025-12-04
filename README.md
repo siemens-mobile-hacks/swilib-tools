@@ -22,17 +22,17 @@ Current architecture uses `sdk` and `patches` from the parent directory.
 1. Check local swilib.vkp for errors:
 ```bash
 # You can specify phone model or platform
-node bin/swilib-tools.js check EL71v45 path/to/swilib.vkp 
-node bin/swilib-tools.js check ELKA path/to/swilib.vkp
+node dist/bin/swilib-tools.js check EL71v45 path/to/swilib.vkp 
+node dist/bin/swilib-tools.js check ELKA path/to/swilib.vkp
 ```
 2. Check swilib.vkp from https://patches.kibab.com
 ```bash
 # Don't forget git pull in patches & sdk repos
-node bin/swilib-tools.js check EL71v45
+node dist/bin/swilib-tools.js check EL71v45
 ```
 3. Merge two swilibs into single one (interactive):
 ```bash
-node bin/swilib-tools.js check C81v51 swilib_a.vkp swilib_b.vkp new_swilib.vjp
+node dist/bin/swilib-tools.js merge C81v51 swilib_a.vkp swilib_b.vkp new_swilib.vkp
 ```
 
 # HTTP API SERVER

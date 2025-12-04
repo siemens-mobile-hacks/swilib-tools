@@ -1,5 +1,6 @@
 {
 	"verbose": true,
-	"exec": "bin/swilib-tools.js server",
-	"ignore": ["cache/*"]
+	"exec": "dist/bin/swilib-tools.js server",
+	"ignore": ["cache/*", "dist/*"],
+	"ext": "ts,js,json"
 }

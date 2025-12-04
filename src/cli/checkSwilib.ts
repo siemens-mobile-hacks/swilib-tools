@@ -1,16 +1,46 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import chalk from 'chalk';
 import { table as asciiTable, getBorderCharacters } from 'table';
-import { getPatchByID, SDK_DIR } from '../utils.js';
 import { swilibConfig, parsePatterns, parseSwilibPatch, getPlatformSwilibFromSDK, getPlatformByPhone, analyzeSwilib } from '@sie-js/swilib';
+import { getPatchByID, SDK_DIR } from '../utils.js';
+
+interface CheckSwilibOptions {
+    file?: string;
+    phone: string;
+}
+
+interface SwilibEntry {
+    symbol?: string;
+}
+
+interface SwilibPatch {
+    entries: (SwilibEntry | undefined)[];
+}
+
+interface SwilibFunction {
+    name?: string;
+    files: string[];
+    platforms?: string[];
+}
+
+interface SwilibAnalysis {
+    missing: number[];
+    errors: Record<string, string>;
+    stat: {
+        total: number;
+        good: number;
+        bad: number;
+        missing: number;
+    };
+}
 
 const tableConfig = {
 	singleLine: true,
 	border: getBorderCharacters('void')
 };
 
-export async function checkSwilibCmd({ file, phone }) {
-	let platform;
+export async function checkSwilibCmd({ file, phone }: CheckSwilibOptions): Promise<void> {
+	let platform: string;
 	if (swilibConfig.platforms.includes(phone)) {
 		platform = phone;
 	} else {
@@ -29,9 +59,9 @@ export async function checkSwilibCmd({ file, phone }) {
 	console.log(`Checking ${file} (${platform})`);
 	console.log();
 
-	const swilib = parseSwilibPatch(fs.readFileSync(file));
-	const sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
-	const analysis = analyzeSwilib(platform, sdklib, swilib);
+	const swilib: SwilibPatch = parseSwilibPatch(fs.readFileSync(file));
+	const sdklib: SwilibFunction[] = getPlatformSwilibFromSDK(SDK_DIR, platform);
+	const analysis: SwilibAnalysis = analyzeSwilib(platform, sdklib, swilib);
 
 	const patterns = parsePatterns(fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`));
 
@@ -45,7 +75,7 @@ export async function checkSwilibCmd({ file, phone }) {
 		for (let id of analysis.missing) {
 			const func = sdklib[id];
 
-			const notes = [];
+			const notes: string[] = [];
 
 			if (patterns[id]?.pattern)
 				notes.push(chalk.green('has pattern'));
@@ -77,10 +107,10 @@ export async function checkSwilibCmd({ file, phone }) {
 
 		for (let id in analysis.errors) {
 			const row = [
-				formatId(id),
-					formatFuncName(sdklib[id]?.name),
-						swilib.entries[id]?.symbol || chalk.gray('// empty'),
-						chalk.red(analysis.errors[id])
+				formatId(parseInt(id)),
+				formatFuncName(sdklib[parseInt(id)]?.name),
+				swilib.entries[parseInt(id)]?.symbol || chalk.gray('// empty'),
+				chalk.red(analysis.errors[id])
 			];
 			errorsTable.push(row);
 		}
@@ -94,8 +124,8 @@ export async function checkSwilibCmd({ file, phone }) {
 	printSummaryStat(analysis.stat);
 }
 
-function printSummaryStat(stat) {
-	const calcPct = (v) => Math.round(v / stat.total * 100) + '%';
+function printSummaryStat(stat: { total: number; good: number; bad: number; missing: number }): void {
+	const calcPct = (v: number): string => Math.round(v / stat.total * 100) + '%';
 	const summaryTable = [
 		[chalk.green(chalk.bold('Good functions:')), chalk.greenBright(stat.good), chalk.greenBright(calcPct(stat.good))],
 		[chalk.red(chalk.bold('Bad functions:')), chalk.redBright(stat.bad), chalk.redBright(calcPct(stat.bad))],
@@ -104,7 +134,7 @@ function printSummaryStat(stat) {
 	console.log(asciiTable(summaryTable, tableConfig));
 }
 
-function formatFuncName(signature) {
+function formatFuncName(signature?: string): string {
 	if (!signature)
 		return chalk.gray('// unused');
 	const m = signature.trim().match(/^(.*?)\s+([*]+)?([\w\d]+)\s*\((.+?)?\)$/is);
@@ -115,6 +145,6 @@ function formatFuncName(signature) {
 	return signature;
 }
 
-function formatId(id) {
-	return (+id).toString(16).padStart(3, 0).toUpperCase();
+function formatId(id: number): string {
+	return id.toString(16).padStart(3, '0').toUpperCase();
 }

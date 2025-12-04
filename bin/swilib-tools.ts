@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
+import { Arguments } from 'yargs'
 import process from "node:process";
 import { updateCacheCmd } from '../src/cli/updateCache.js';
 import { checkSwilibCmd } from '../src/cli/checkSwilib.js';

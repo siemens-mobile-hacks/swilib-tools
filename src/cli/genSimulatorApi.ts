@@ -1,15 +1,19 @@
-import fs from 'fs';
-import { getPlatformByPhone, swilibConfig, SwiType } from "@sie-js/swilib";
+import fs from 'node:fs';
+import { sprintf } from 'sprintf-js';
+import { getPlatformByPhone, SdkEntry, swilibConfig, SwiType } from "@sie-js/swilib";
 import { getPatchByID } from "../utils.js";
 import { getPlatformSwilibFromSDKCached, parseSwilibPatchCached } from "../cache.js";
-import { sprintf } from 'sprintf-js';
 
-export async function genSimulatorApi({ dir }) {
+type GenSimulatorApiArgv = {
+	dir: string;
+};
+
+export async function genSimulatorApi({ dir }: GenSimulatorApiArgv): Promise<void> {
 	// ELKA, NSG, X75, SG
 	const phones = ['EL71v45', 'C81v51', 'CX75v25', 'S65v58'];
-	let stubs = [];
-	let table = [];
-	let unimplemented = {};
+	const stubs: (string | undefined)[] = [];
+	const table: string[] = [];
+	const unimplemented: Record<string, string[]> = {};
 
 	for (let id = 0; id <= 0xFFF; id++) {
 		stubs[id] =
@@ -19,8 +23,8 @@ export async function genSimulatorApi({ dir }) {
 		table[id] = `__swi_${sprintf("%04x", id)}`;
 	}
 
-	let allFunctions = [];
-	for (let phone of phones) {
+	const allFunctions: SdkEntry[] = [];
+	for (const phone of phones) {
 		const platform = getPlatformByPhone(phone);
 		const sdklib = await getPlatformSwilibFromSDKCached(platform);
 		for (let id = 0; id < sdklib.length; id++)
@@ -49,7 +53,7 @@ export async function genSimulatorApi({ dir }) {
 			func.name = func.name.replaceAll(func.symbol + '(', 'bsd_' + func.symbol + '(');
 			func.symbol = "bsd_" + func.symbol;
 
-			const replaces = {
+			const replaces: Record<string, string> = {
 				'in_port_t':				'bsd_in_port_t',
 				'sa_family_t':				'bsd_sa_family_t',
 				'in_addr_t':				'bsd_in_addr_t',
@@ -68,14 +72,17 @@ export async function genSimulatorApi({ dir }) {
 			func.symbol = "_" + func.symbol;
 		}
 
-		let returnCode;
+		let returnCode: string | undefined;
 		let noStubWarn = false;
 		if (func.type == SwiType.VALUE) {
-			let platformValues = {};
+			let platformValues: Record<string, number | undefined> = {};
 			for (let phone of phones) {
 				const platform = getPlatformByPhone(phone);
 				const patchId = swilibConfig.patches[phone];
 				const file = getPatchByID(patchId);
+				if (!file)
+					continue;
+
 				const swilib = await parseSwilibPatchCached(fs.readFileSync(file));
 				platformValues[platform] = swilib.entries[id]?.value;
 			}
@@ -93,10 +100,10 @@ export async function genSimulatorApi({ dir }) {
 				`#endif`;
 
 			table[id] = `${func.symbol}()`;
-			stubs[id] = null;
+			stubs[id] = undefined;
 		} else if (func.type == SwiType.POINTER) {
 			table[id] = `${func.symbol}()`;
-			stubs[id] = null;
+			stubs[id] = undefined;
 		} else if (func.type == SwiType.FUNCTION) {
 			table[id] = `${func.symbol}`;
 		}
@@ -130,7 +137,7 @@ export async function genSimulatorApi({ dir }) {
 	}
 
 	// stubs.cpp
-	let code = [];
+	let code: string[] = [];
 	code.push(`/* Auto-generated file!!! See @sie-js/swilib-tools! */`);
 	code.push(`#include "swilib.h"`);
 	code.push(`#include <swilib.h>`);
@@ -143,7 +150,7 @@ export async function genSimulatorApi({ dir }) {
 	code.push(`#include <string.h>`);
 	code.push("");
 
-	code.push(stubs.join("\n"));
+	code.push(stubs.filter(Boolean).join("\n"));
 	code.push("");
 
 	code.push(`void *swilib_functions[SWI_FUNCTIONS_CNT] = { };`);
@@ -177,9 +184,9 @@ export async function genSimulatorApi({ dir }) {
 	fs.writeFileSync(`${dir}/src/swilib-stubs.cpp`, code.join("\n"));
 }
 
-function parseReturnType(def) {
+function parseReturnType(def: string): string {
 	def = def.replace(/\s+/g, ' ').trim();
-	const m = def.match(/^(.*?\s?[*]?)([\w\d_]+)\(.*?\)$/i);
+	const m = def.match(/^(.*?\s?[*]?)([\w_]+)\(.*?\)$/i);
 	if (!m)
 		throw new Error(`Can't parse C definition: ${def}`);
 	return m[1].trim();

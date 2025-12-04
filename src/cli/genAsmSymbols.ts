@@ -1,17 +1,33 @@
-import fs from 'fs';
-import { analyzeSwilib, getPlatformByPhone, getPlatformSwilibFromSDK, swilibConfig, SwiType, SwiValueType } from "@sie-js/swilib";
+import fs from 'node:fs';
+import path from 'node:path';
+import { sprintf } from 'sprintf-js';
+import {
+	analyzeSwilib,
+	getPlatformByPhone,
+	getPlatformSwilibFromSDK,
+	swilibConfig,
+	SwiValueType
+} from "@sie-js/swilib";
 import { getPatchByID, SDK_DIR } from "../utils.js";
 import { parseSwilibPatchCached } from "../cache.js";
-import { sprintf } from 'sprintf-js';
-import path from 'path';
 
-export async function genAsmSymbols({ dir }) {
-	let symbols = {};
-	let values = {};
-	let swilibStubs = {};
+type GenAsmSymbolsArgv = {
+	dir: string;
+};
+
+export async function genAsmSymbols({ dir }: GenAsmSymbolsArgv): Promise<void> {
+	let symbols: Record<string, string[]> = {};
+	let values: Record<string, string[]> = {};
+	let swilibStubs: Record<string, Record<string, Record<string, string>>> = {};
+
 	for (const phone of swilibConfig.phones) {
 		const patchId = swilibConfig.patches[phone];
 		const file = getPatchByID(patchId);
+		if (!file) {
+			console.error(`Patch file not found for phone ${phone}`);
+			continue;
+		}
+
 		const swilib = await parseSwilibPatchCached(fs.readFileSync(file));
 		const platform = getPlatformByPhone(phone);
 		const sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
@@ -26,14 +42,15 @@ export async function genAsmSymbols({ dir }) {
 			if (!sdklib[id])
 				continue;
 
-			const isInvalid = !entry || (id in analysis.errors) || entry.value == SwiValueType.UNDEFINED;
+			const isInvalid = !entry || (id.toString() in analysis.errors) || entry.value == SwiValueType.UNDEFINED;
 			if (isInvalid) {
 				values[phone].push(`#define SWI_${sprintf("%04X", id)} ___bad_swi_addr___(${sprintf("0x%08X", 0xFFFFFFFF)})`);
 			} else {
 				values[phone].push(`#define SWI_${sprintf("%04X", id)} ${sprintf("0x%08X", entry.value)}`);
 			}
 
-			for (const func of sdklib[id].functions) {
+			const sdkEntry = sdklib[id];
+			for (const func of sdkEntry.functions) {
 				swilibStubs[func.file] = swilibStubs[func.file] || {};
 				swilibStubs[func.file][func.symbol] = swilibStubs[func.file][func.symbol] || {};
 				swilibStubs[func.file][func.symbol][platform] = `#define ${func.symbol}(...) ((__typeof__(&${func.symbol})) SWI_${sprintf("%04X", id)})(__VA_ARGS__)`;
@@ -47,7 +64,7 @@ export async function genAsmSymbols({ dir }) {
 				}
 			}
 
-			for (const func of sdklib[id].pointers) {
+			for (const func of sdkEntry.pointers) {
 				swilibStubs[func.file] = swilibStubs[func.file] || {};
 				swilibStubs[func.file][func.symbol] = swilibStubs[func.file][func.symbol] || {};
 				swilibStubs[func.file][func.symbol][platform] = `#define ${func.symbol}() ((__typeof__(${func.symbol}())) SWI_${sprintf("%04X", id)})`;
@@ -64,7 +81,7 @@ export async function genAsmSymbols({ dir }) {
 	if (!fs.existsSync(`${dir}/gen`))
 		fs.mkdirSync(`${dir}/gen`);
 
-	const swilibS = [];
+	const swilibS: string[] = [];
 	for (const phone of swilibConfig.phones) {
 		swilibS.push([
 			`#ifdef ${phone}`,
@@ -75,7 +92,7 @@ export async function genAsmSymbols({ dir }) {
 	console.log(`-> ${dir}/swilib.S`);
 	fs.writeFileSync(`${dir}/swilib.S`, `@ Code generated. DO NOT EDIT!\n` + swilibS.join("\n\n") + "\n");
 
-	const swilibValuesH = [];
+	const swilibValuesH: string[] = [];
 	for (const phone of swilibConfig.phones) {
 		swilibValuesH.push([
 			`#ifdef ${phone}`,

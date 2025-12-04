@@ -2,12 +2,14 @@
 	"name": "@sie-js/swilib-tools",
 	"version": "1.0.0",
 	"type": "module",
-	"main": "bin/swilib-tools.js",
+	"main": "dist/bin/swilib-tools.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node bin/swilib-tools.js server"
+		"start": "node dist/bin/swilib-tools.js server",
+		"build": "tsc",
+		"dev": "tsc --watch"
 	},
-	"bin": "./bin/swilib-tools.js",
+	"bin": "./dist/bin/swilib-tools.js",
 	"author": "",
 	"license": "MIT",
 	"description": "",
@@ -32,7 +34,8 @@
 		"@types/express": "^5.0.1",
 		"@types/sprintf-js": "^1.1.4",
 		"@types/yargs": "^17.0.33",
-		"nodemon": "^3.1.0"
+		"nodemon": "^3.1.0",
+		"typescript": "^5.8.3"
 	},
 	"repository": {
 		"url": "git+https://github.com/siemens-mobile-hacks/swilib-tools.git"
