@@ -1,120 +1,129 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { sprintf } from 'sprintf-js';
-import {
-	analyzeSwilib,
-	getPlatformByPhone,
-	getPlatformSwilibFromSDK,
-	swilibConfig,
-	SwiValueType
-} from "@sie-js/swilib";
-import { getPatchByID, SDK_DIR } from "../utils.js";
-import { parseSwilibPatchCached } from "../cache.js";
+import { CLIBaseOptions } from "#src/cli.js";
+import { createAppCommand } from "#src/utils/command.js";
+import { SDK_DIR } from "#src/utils.js";
+import { loadLibraryForTarget } from "#src/utils/swilib.js";
+import { analyzeSwilib, getSwilibPlatforms, loadSwilibConfig, SwiValueType } from "@sie-js/swilib";
 
-type GenAsmSymbolsArgv = {
-	dir: string;
-};
+interface Options extends CLIBaseOptions {
+	output: string;
+}
 
-export async function genAsmSymbols({ dir }: GenAsmSymbolsArgv): Promise<void> {
-	let symbols: Record<string, string[]> = {};
-	let values: Record<string, string[]> = {};
-	let swilibStubs: Record<string, Record<string, Record<string, string>>> = {};
+export default createAppCommand<Options>(async ({ output }) => {
+	const symbols: Record<string, string[]> = {};
+	const values: Record<string, string[]> = {};
+	const swilibStubs: Record<string, Record<string, Record<string, string>>> = {};
 
-	for (const phone of swilibConfig.phones) {
-		const patchId = swilibConfig.patches[phone];
-		const file = getPatchByID(patchId);
-		if (!file) {
-			console.error(`Patch file not found for phone ${phone}`);
-			continue;
-		}
+	const swilibConfig = loadSwilibConfig(SDK_DIR);
+	for (const target of swilibConfig.targets) {
+		const { sdklib, swilib, platform } = await loadLibraryForTarget(target);
 
-		const swilib = await parseSwilibPatchCached(fs.readFileSync(file));
-		const platform = getPlatformByPhone(phone);
-		const sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
+		const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 
-		const analysis = analyzeSwilib(platform, sdklib, swilib);
+		symbols[target] = symbols[target] ?? [];
+		values[target] = values[target] ?? [];
 
-		symbols[phone] = symbols[phone] || [];
-		values[phone] = values[phone] || [];
+		for (let id = 0; id < sdklib.entries.length; id++) {
+			const swiEntry = swilib.entries[id];
+			const sdkEntry = sdklib.entries[id];
 
-		for (let id = 0; id < sdklib.length; id++) {
-			const entry = swilib.entries[id];
-			if (!sdklib[id])
+			if (!sdkEntry)
 				continue;
 
-			const isInvalid = !entry || (id.toString() in analysis.errors) || entry.value == SwiValueType.UNDEFINED;
+			const isInvalid = !swiEntry || analysis.errors[id] || swiEntry.value == SwiValueType.UNDEFINED;
 			if (isInvalid) {
-				values[phone].push(`#define SWI_${sprintf("%04X", id)} ___bad_swi_addr___(${sprintf("0x%08X", 0xFFFFFFFF)})`);
+				values[target].push([
+					`#define SWI_${sprintf("%04X", id)}`,
+					`___bad_swi_addr___(${sprintf("0x%08X", 0xFFFFFFFF)})`
+				].join(" "));
 			} else {
-				values[phone].push(`#define SWI_${sprintf("%04X", id)} ${sprintf("0x%08X", entry.value)}`);
+				values[target].push([
+					`#define SWI_${sprintf("%04X", id)}`,
+					`${sprintf("0x%08X", swiEntry.value)}`
+				].join(" "));
 			}
 
-			const sdkEntry = sdklib[id];
 			for (const func of sdkEntry.functions) {
-				swilibStubs[func.file] = swilibStubs[func.file] || {};
-				swilibStubs[func.file][func.symbol] = swilibStubs[func.file][func.symbol] || {};
-				swilibStubs[func.file][func.symbol][platform] = `#define ${func.symbol}(...) ((__typeof__(&${func.symbol})) SWI_${sprintf("%04X", id)})(__VA_ARGS__)`;
+				swilibStubs[func.file] = swilibStubs[func.file] ?? {};
+				swilibStubs[func.file][func.symbol] = swilibStubs[func.file][func.symbol] ?? {};
+				swilibStubs[func.file][func.symbol][platform] = [
+					`#define ${func.symbol}(...)`,
+					`((__typeof__(&${func.symbol}))`,
+					`SWI_${sprintf("%04X", id)})(__VA_ARGS__)`
+				].join(" ");
 
 				if (!isInvalid) {
-					symbols[phone].push([
+					symbols[target].push([
 						`.global ${func.symbol}`,
-						`.equ ${func.symbol}, ${sprintf("0x%08X", entry.value)}`,
+						`.equ ${func.symbol}, ${sprintf("0x%08X", swiEntry.value)}`,
 						`.type ${func.symbol}, function`
 					].join("\n"));
 				}
 			}
 
 			for (const func of sdkEntry.pointers) {
-				swilibStubs[func.file] = swilibStubs[func.file] || {};
+				swilibStubs[func.file] = swilibStubs[func.file] ?? {};
 				swilibStubs[func.file][func.symbol] = swilibStubs[func.file][func.symbol] || {};
-				swilibStubs[func.file][func.symbol][platform] = `#define ${func.symbol}() ((__typeof__(${func.symbol}())) SWI_${sprintf("%04X", id)})`;
+				swilibStubs[func.file][func.symbol][platform] = [
+					`#define ${func.symbol}()`,
+					`((__typeof__(${func.symbol}()))`,
+					`SWI_${sprintf("%04X", id)})`
+				].join(" ");
 
 				if (!isInvalid) {
-					symbols[phone].push([
-						`.equ ${func.symbol}_VALUE, ${sprintf("0x%08X", entry.value)}`,
+					symbols[target].push([
+						`.equ ${func.symbol}_VALUE, ${sprintf("0x%08X", swiEntry.value)}`,
 					].join("\n"));
 				}
 			}
 		}
 	}
 
-	if (!fs.existsSync(`${dir}/gen`))
-		fs.mkdirSync(`${dir}/gen`);
+	if (!fs.existsSync(`${output}/gen`))
+		fs.mkdirSync(`${output}/gen`);
 
 	const swilibS: string[] = [];
-	for (const phone of swilibConfig.phones) {
+	for (const target of swilibConfig.targets) {
 		swilibS.push([
-			`#ifdef ${phone}`,
-			`\t#include "gen/${phone}.S"`,
+			`#ifdef ${target}`,
+			`\t#include "gen/${target}.S"`,
 			`#endif`
 		].join("\n"));
 	}
-	console.log(`-> ${dir}/swilib.S`);
-	fs.writeFileSync(`${dir}/swilib.S`, `@ Code generated. DO NOT EDIT!\n` + swilibS.join("\n\n") + "\n");
+	console.log(`-> ${output}/swilib.S`);
+	fs.writeFileSync(
+		`${output}/swilib.S`,
+		`@ Code generated. DO NOT EDIT!\n` + swilibS.join("\n\n") + "\n"
+	);
 
 	const swilibValuesH: string[] = [];
-	for (const phone of swilibConfig.phones) {
+	for (const target of swilibConfig.targets) {
 		swilibValuesH.push([
-			`#ifdef ${phone}`,
-			`\t#include "gen/${phone}.h"`,
+			`#ifdef ${target}`,
+			`\t#include "gen/${target}.h"`,
 			`#endif`
 		].join("\n"));
 	}
-	console.log(`-> ${dir}/swilib-values.h`);
-	fs.writeFileSync(`${dir}/swilib-values.h`, `#pragma once\n// Code generated. DO NOT EDIT!\n` + swilibValuesH.join("\n\n") + "\n");
+	console.log(`-> ${output}/swilib-values.h`);
+	fs.writeFileSync(
+		`${output}/swilib-values.h`,
+		`#pragma once\n// Code generated. DO NOT EDIT!\n` + swilibValuesH.join("\n\n") + "\n"
+	);
 
-	for (const phone in symbols) {
-		const fileS = `${dir}/gen/${phone}.S`;
+	for (const target in symbols) {
+		const fileS = `${output}/gen/${target}.S`;
 		console.log(`-> ${fileS}`);
-		fs.writeFileSync(fileS, `@ Code generated. DO NOT EDIT!\n` + symbols[phone].join("\n\n") + "\n");
+		fs.writeFileSync(fileS, `@ Code generated. DO NOT EDIT!\n` + symbols[target].join("\n\n") + "\n");
 
-		const fileH = `${dir}/gen/${phone}.h`;
+		const fileH = `${output}/gen/${target}.h`;
 		console.log(`-> ${fileH}`);
-		fs.writeFileSync(fileH, `#pragma once\n// Code generated. DO NOT EDIT!\n` + values[phone].join("\n\n") + "\n");
+		fs.writeFileSync(fileH, `#pragma once\n// Code generated. DO NOT EDIT!\n` + values[target].join("\n\n") + "\n");
 	}
 
 	for (const file in swilibStubs) {
-		const headerPath = `${dir}/${file}`;
+		const headerPath = `${output}/${file}`;
 		const headerDir = path.dirname(headerPath);
 
 		if (!fs.existsSync(headerDir))
@@ -129,7 +138,7 @@ export async function genAsmSymbols({ dir }: GenAsmSymbolsArgv): Promise<void> {
 		for (const symbol in swilibStubs[file]) {
 			const platforms = Object.keys(swilibStubs[file][symbol]);
 			const allPlatforms = (
-				platforms.length == swilibConfig.platforms.length &&
+				platforms.length == getSwilibPlatforms().length &&
 				Object.values(swilibStubs[file][symbol]).every((v) => v == swilibStubs[file][symbol][platforms[0]])
 			);
 
@@ -147,4 +156,4 @@ export async function genAsmSymbols({ dir }: GenAsmSymbolsArgv): Promise<void> {
 		console.log(`-> ${headerPath}`);
 		fs.writeFileSync(`${headerPath}`, code.join("\n") + "\n");
 	}
-}
+});

@@ -1,76 +1,70 @@
 import fs from 'fs';
-import inquirer from 'inquirer';
-import { table as asciiTable } from 'table';
-import { analyzeSwilib, getPlatformByPhone, getPlatformSwilibFromSDK, parseSwilibPatch, serializeSwilib, swilibConfig } from "@sie-js/swilib";
-import { SDK_DIR } from '../utils';
 import chalk from 'chalk';
+import * as inquirer from '@inquirer/prompts';
+import { table as asciiTable } from 'table';
+import { SDK_DIR } from '../utils.js';
 import { sprintf } from 'sprintf-js';
+import { CLIBaseOptions } from "#src/cli.js";
+import { createAppCommand } from "#src/utils/command.js";
+import {
+	analyzeSwilib,
+	getSwilibPlatform,
+	loadSwilibConfig,
+	parseLibraryFromSDK,
+	parseSwilibPatch,
+	serializeSwilib,
+	Swilib,
+	SwilibAnalysisResult
+} from "@sie-js/swilib";
 
-interface MergeSwilibOptions {
-    phone: string;
-    file_a: string;
-    file_b: string;
-    new_file: string;
+interface Options extends CLIBaseOptions {
+	target: string;
+	source: string;
+	destination: string;
+	output: string;
 }
 
-interface SwilibEntry {
-    symbol?: string;
-    value?: number | string;
-    comment?: string;
-}
-
-interface SwilibPatch {
-    offset: number;
-    entries: (SwilibEntry | undefined)[];
-}
-
-interface SwilibFunction {
-    name?: string;
-}
-
-interface SwilibAnalysis {
-    errors: Record<string, string>;
-}
-
-export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }: MergeSwilibOptions): Promise<void> {
-	const platform = swilibConfig.platforms.includes(phone) ? phone : getPlatformByPhone(phone);
-	const sdklib = getPlatformSwilibFromSDK(SDK_DIR, platform);
-
-	let analysis: SwilibAnalysis[] = [];
-	let swilibs: SwilibPatch[] = [];
+export default createAppCommand<Options>(async ({ source, destination, target, output }) => {
+	const swilibConfig = loadSwilibConfig(SDK_DIR);
+	const platform = getSwilibPlatform(swilibConfig, target);
+	const sdklib = await parseLibraryFromSDK(SDK_DIR, platform);
 
 	let maxFunctionId = 0;
-	for (let code of [ fs.readFileSync(file_a), fs.readFileSync(file_b) ]) {
-		const swilib = parseSwilibPatch(code, { comments: true }) as SwilibPatch;
+	const swilibs: Swilib[] = [];
+	const analysis: SwilibAnalysisResult[] = [];
+	for (const file of [source, destination]) {
+		const swilib = parseSwilibPatch(swilibConfig, fs.readFileSync(file), { target });
+		swilib.entries[sdklib.entries.length - 1] = swilib.entries[sdklib.entries.length - 1] || undefined;
 		swilibs.push(swilib);
-		analysis.push(analyzeSwilib(platform, sdklib, swilib));
+		analysis.push(analyzeSwilib(swilibConfig, swilib, sdklib));
 		maxFunctionId = Math.max(swilib.entries.length, maxFunctionId);
 	}
 
 	if (swilibs[0].offset != swilibs[1].offset) {
-		console.error(chalk.red(`Swilibs have different base offsets, merge is not possible.`));
+		console.error(chalk.red(`Swilib's have different base offsets, merge is not possible.`));
 		return;
 	}
 
-	let answers: Record<string, number> = {};
+	const answers = new Map<number, number>();
 	for (let id = 0; id < maxFunctionId; id++) {
-		const funcA = swilibs[0].entries[id];
-		const funcB = swilibs[1].entries[id];
+		const swiEntryA = swilibs[0].entries[id];
+		const swiEntryB = swilibs[1].entries[id];
+		const sdkEntry = sdklib.entries[id];
 
-		if (!funcA && !funcB)
+		if (!swiEntryA && !swiEntryB)
 			continue;
 
-		let table = [
+		const table = [
 			['ID', 'Name', 'Swilib A', 'Swilib B'],
 			[
 				formatId(id),
-				sdklib[id] ? formatFuncName(sdklib[id].name) : chalk.grey('/* none */'),
-				funcA?.value != null ? sprintf("%08X", funcA.value) : chalk.gray('/* none */'),
-				funcB?.value != null ? sprintf("%08X", funcB.value) : chalk.gray('/* none */'),
+				sdkEntry ? formatFuncName(sdkEntry.name) : chalk.grey('/* none */'),
+				swiEntryA?.value != null ? sprintf("%08X", swiEntryA.value) : chalk.gray('/* none */'),
+				swiEntryB?.value != null ? sprintf("%08X", swiEntryB.value) : chalk.gray('/* none */'),
 			]
 		];
 
-		let isValid = (index: number): boolean => {
+		const isEntryValid = (index: number): boolean => {
 			if (analysis[index].errors[id])
 				return false;
 			if (swilibs[index].entries[id]?.value == null)
@@ -92,86 +86,90 @@ export async function mergeSwilib({ phone, file_a, file_b, new_file: newFile }: 
 			if (analysis[1].errors[id])
 				console.log('Swilib B error:', chalk.red(analysis[1].errors[id]));
 			needMerge = true;
-		} else if ((funcA && !funcB) || (!funcA && funcB)) {
+		} else if ((swiEntryA && !swiEntryB) || (!swiEntryA && swiEntryB)) {
 			needMerge = false;
-			answers[id.toString()] = funcA ? 0 : 1;
-		} else if (funcA && funcB && funcA.value != funcB.value) {
+			answers.set(id, swiEntryA ? 0 : 1);
+		} else if (swiEntryA && swiEntryB && swiEntryA.value != swiEntryB.value) {
 			console.log(asciiTable(table).trim());
 			needMerge = true;
 		}
 
 		if (needMerge) {
-			let choices = [];
-			if (isValid(0) && funcA) {
-				choices.push({ name: 'Swilib A: ' + sprintf("%08X", funcA.value), value: 0 });
+			const choices: Array<{ name: string, value: number, disabled?: boolean }> = [];
+			if (isEntryValid(0) && swiEntryA) {
+				choices.push({ name: 'Swilib A: ' + sprintf("%08X", swiEntryA.value), value: 0 });
 			} else {
-				choices.push({ name: 'Swilib A: not available', disabled: true });
+				choices.push({ name: 'Swilib A: not available', value: 0, disabled: true });
 			}
-			if (isValid(1) && funcB) {
-				choices.push({ name: 'Swilib B: ' + sprintf("%08X", funcB.value), value: 1 });
+			if (isEntryValid(1) && swiEntryB) {
+				choices.push({ name: 'Swilib B: ' + sprintf("%08X", swiEntryB.value), value: 1 });
 			} else {
-				choices.push({ name: 'Swilib B: not available', disabled: true });
+				choices.push({ name: 'Swilib B: not available', value: 0, disabled: true });
 			}
 			choices.push({ name: 'Remove from swilib', value: -1 });
 
-			answers = await inquirer.prompt({
-				name: id.toString(),
-				type: 'list',
+			const answer = await inquirer.select({
 				message: 'Choose right variant.',
 				choices
-			}, answers);
+			});
+			answers.set(id, answer);
+
 			console.log();
 			console.log();
 			console.log();
 		}
 	}
 
-	let newSwilib: SwilibPatch = {
+	const newSwilib: Swilib = {
 		offset: swilibs[1].offset,
-		entries: [...swilibs[1].entries],
+		entries: [],
+		target,
+		platform,
 	};
 
-	let summaryTable = [
+	const summaryTable = [
 		['ID', 'Name', 'Swilib A', 'Swilib B']
 	];
-	for (let idStr in answers) {
-		const id = parseInt(idStr);
+	for (let id = 0; id < maxFunctionId; id++) {
+		const swiEntryA = swilibs[0].entries[id];
+		const swiEntryB = swilibs[1].entries[id];
+		const sdkEntry = sdklib.entries[id];
+		const swiEntryStrA = swiEntryA?.value != null ? sprintf("%08X", swiEntryA.value) : '';
+		const swiEntryStrB = swiEntryB?.value != null ? sprintf("%08X", swiEntryB.value) : '';
 
-		let funcA = swilibs[0].entries[id];
-		let funcB = swilibs[1].entries[id];
-		let funcAStr = funcA?.value != null ? sprintf("%08X", funcA.value) : '';
-		let funcBStr = funcB?.value != null ? sprintf("%08X", funcB.value) : '';
+		if (!answers.has(id)) {
+			if (swilibs[1].entries[id]) {
+				newSwilib.entries[id] = structuredClone(swilibs[1].entries[id]);
+				delete newSwilib.entries[id].comment;
+			}
+			continue;
+		}
 
-		if (answers[idStr] == -1) {
-			delete newSwilib.entries[id];
+		const answer = answers.get(id)!;
+		if (answer == -1) {
 			summaryTable.push([
 				chalk.strikethrough.red(formatId(id)),
-				chalk.strikethrough.red(sdklib[id] ? formatFuncName(sdklib[id].name) : '/* none */'),
-				chalk.strikethrough.red(funcAStr),
-				chalk.strikethrough.red(funcBStr),
+				chalk.strikethrough.red(sdkEntry ? formatFuncName(sdkEntry.name) : '/* none */'),
+				chalk.strikethrough.red(swiEntryStrA),
+				chalk.strikethrough.red(swiEntryStrB),
 			]);
 		} else {
-			const selectedIndex = answers[idStr];
-			if (newSwilib.entries[id]?.value !== swilibs[selectedIndex].entries[id]?.value) {
-				newSwilib.entries[id] = swilibs[selectedIndex].entries[id];
-				if (newSwilib.entries[id]) {
-					delete newSwilib.entries[id].comment;
-				}
-			}
-
+			newSwilib.entries[id] = structuredClone(swilibs[answer].entries[id]);
+			delete newSwilib.entries[id].comment;
 			summaryTable.push([
 				formatId(id),
-				sdklib[id] ? formatFuncName(sdklib[id].name) : chalk.grey('/* none */'),
-				answers[idStr] == 0 ? chalk.bold.green(funcAStr) : chalk.gray(funcAStr),
-				answers[idStr] == 1 ? chalk.bold.green(funcBStr) : chalk.gray(funcBStr),
+				sdkEntry ? formatFuncName(sdkEntry.name) : chalk.grey('/* none */'),
+				answer == 0 ? chalk.bold.green(swiEntryStrA) : chalk.gray(swiEntryStrA),
+				answer == 1 ? chalk.bold.green(swiEntryStrB) : chalk.gray(swiEntryStrB),
 			]);
 		}
 	}
 
-	console.log(asciiTable(summaryTable).trim());
+	console.log(asciiTable(summaryTable));
 
-	fs.writeFileSync(newFile, serializeSwilib(phone, sdklib, newSwilib));
-}
+	fs.writeFileSync(output, serializeSwilib(swilibConfig, newSwilib, sdklib));
+	console.log(`Saved to ${output}`);
+});
 
 function formatFuncName(signature?: string): string {
 	if (!signature)
