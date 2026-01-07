@@ -12,6 +12,7 @@ module.exports = {
 			script: "dist/src/cli.js",
 			args: ["update-db"],
 			cron_restart: "* * * * *",
+			exec_mode: "fork",
 			instances: 1,
 			autorestart: false,
 		},
