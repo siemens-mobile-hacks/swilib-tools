@@ -2,14 +2,13 @@
 	"name": "@sie-js/swilib-tools",
 	"version": "1.0.0",
 	"type": "module",
-	"main": "dist/bin/swilib-tools.js",
+	"main": "dist/src/cli.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node dist/bin/swilib-tools.js server",
 		"build": "tsc",
 		"dev": "tsc --watch"
 	},
-	"bin": "./dist/bin/swilib-tools.js",
+	"bin": "dist/src/cli.js",
 	"author": "kirill.zhumarin@gmail.com",
 	"license": "MIT",
 	"description": "CLI tools for Siemens Mobile phone development",
@@ -18,10 +17,12 @@
 		"@inquirer/prompts": "^8.1.0",
 		"@sie-js/swilib": "^3.0.1",
 		"@sie-js/vkp": "^2.0.1",
+		"@types/debug": "^4.1.12",
 		"chalk": "^5.6.2",
 		"commander": "^14.0.2",
+		"debug": "^4.4.3",
 		"fastify": "^5.6.2",
-		"glob": "^10.5.0",
+		"glob": "11.1.0",
 		"json5": "^2.2.3",
 		"simple-git": "^3.30.0",
 		"sprintf-js": "^1.1.3",
@@ -38,5 +39,8 @@
 	"imports": {
 		"#src/*": "./dist/src/*"
 	},
+	"files": [
+		"./dist/src/*"
+	],
 	"packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
 }

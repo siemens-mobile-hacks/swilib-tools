@@ -7,6 +7,7 @@ import cmdMergeSwilibs from "#src/cli/mergeSwilib.js";
 import cmdConvert from "#src/cli/convert.js";
 import cmdGenAsmSymbols from "#src/cli/genAsmSymbols.js";
 import cmdGenSimulatorApi from "#src/cli/genSimulatorApi.js";
+import cmdUpdateRepos from "#src/cli/updateRepos.js";
 import { findDefaultDevRoot, setDevRoot } from "#src/utils/sdk.js";
 
 export interface CLIBaseOptions {
@@ -14,7 +15,6 @@ export interface CLIBaseOptions {
 }
 
 const defaultDevRoot = findDefaultDevRoot() ?? process.env.SIE_DEV_ROOT;
-
 program
 	.name("swilib-tools")
 	.version(getVersion(), '-v, --version')
@@ -76,6 +76,11 @@ program
 	.description('Generate API stubs for the ELF emulator')
 	.requiredOption('-o, --output <DIR>', 'Path to the emulator directory')
 	.action(cmdGenSimulatorApi);
+
+program
+	.command('update-db')
+	.description('Pull repositories in development root')
+	.action(cmdUpdateRepos);
 
 program.showSuggestionAfterError(true);
 program.showHelpAfterError();
