@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { globSync } from "glob";
 import { SwilibConfig } from "@sie-js/swilib";
+import { simpleGit } from "simple-git";
 
 export let PATCHES_DIR: string;
 export let SDK_DIR: string;
@@ -16,6 +17,16 @@ const possibleDirectories = [
 export function setDevRoot(rootPath: string) {
 	PATCHES_DIR = `${rootPath}/patches`;
 	SDK_DIR = `${rootPath}/sdk`;
+}
+
+export async function getDevRootRevision() {
+	const revision: string[] = [];
+	for (const repo of [SDK_DIR, PATCHES_DIR]) {
+		const git = simpleGit(repo);
+		const headHashId = await git.revparse("HEAD");
+		revision.push(headHashId);
+	}
+	return revision.join('-');
 }
 
 export function findDefaultDevRoot() {

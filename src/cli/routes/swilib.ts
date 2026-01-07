@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { getGhidraSymbols, getIdaSymbols, getSwiBlib, serializeSwilib } from "@sie-js/swilib";
 import { getSwilibDevices, getSwilibSummaryAnalysis, getTargetSwilibAnalysis } from "#src/analyze.js";
 import { loadLibraryForTarget } from "#src/utils/swilib.js";
+import { cached } from "#src/utils/cache.js";
 
 interface DownloadRoute {
 	Params: {
@@ -24,13 +25,13 @@ export function swilibRoutes(fastify: FastifyInstance) {
 
 	// Analyze all targets
 	fastify.get('/analyze/all', async () => {
-		return getSwilibSummaryAnalysis();
+		return cached(`swilib-analysis-all`, () => getSwilibSummaryAnalysis());
 	});
 
 	// Analyze swilib
 	fastify.get<AnalyzeSwilibRoute>('/analyze/:target', async (request) => {
 		const target = request.params.target;
-		return getTargetSwilibAnalysis(target);
+		return cached(`swilib-analysis-${target}`, () => getTargetSwilibAnalysis(target));
 	});
 
 	// Download as .blib, .vkp, .txt or .idc
