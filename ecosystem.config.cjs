@@ -1,15 +1,17 @@
 module.exports = {
 	apps: [
 		{
-			name: "swilib-tools:dev-server",
+			namespace: "swilib-tools",
+			name: "dev-server",
 			script: "dist/src/cli.js",
 			args: ["server"],
 		},
 		{
-			name: 'swilib-tools:update-db',
+			namespace: "swilib-tools",
+			name: "update-db",
 			script: "dist/src/cli.js",
 			args: ["update-db"],
-			cron_restart: '* * * * *',
+			cron_restart: "* * * * *",
 			instances: 1,
 			autorestart: false,
 		},
