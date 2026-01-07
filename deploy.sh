@@ -16,3 +16,4 @@ pnpm install --frozen-lockfile
 pnpm build
 pm2 delete swilib-tools || true
 pm2 start ./ecosystem.config.cjs
+pm2 save
