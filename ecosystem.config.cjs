@@ -1,7 +1,7 @@
 module.exports = {
 	apps: [{
-		name:	"swilib-tools",
-		script: "npm",
-		args:	"run start",
+		name:	"swilib-dev-server",
+		script: "dist/src/cli.js",
+		args:	"server",
 	}]
 };

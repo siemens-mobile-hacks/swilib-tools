@@ -4,8 +4,6 @@ import crypto from 'node:crypto';
 import { globSync } from 'glob';
 import { SwilibConfig } from "@sie-js/swilib";
 
-export const ROOT_DIR: string = path.resolve(`${import.meta.dirname}/../`);
-export const CACHE_DIR: string = path.resolve(`${ROOT_DIR}/cache`);
 export const PATCHES_DIR: string = findPatchesDir();
 export const SDK_DIR: string = findSdkDir();
 

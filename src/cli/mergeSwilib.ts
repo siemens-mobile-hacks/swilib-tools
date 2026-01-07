@@ -140,7 +140,7 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 		if (!answers.has(id)) {
 			if (swilibs[1].entries[id]) {
 				newSwilib.entries[id] = structuredClone(swilibs[1].entries[id]);
-				delete newSwilib.entries[id].comment;
+				delete newSwilib.entries[id]!.comment;
 			}
 			continue;
 		}
@@ -155,7 +155,7 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 			]);
 		} else {
 			newSwilib.entries[id] = structuredClone(swilibs[answer].entries[id]);
-			delete newSwilib.entries[id].comment;
+			delete newSwilib.entries[id]!.comment;
 			summaryTable.push([
 				formatId(id),
 				sdkEntry ? formatFuncName(sdkEntry.name) : chalk.grey('/* none */'),

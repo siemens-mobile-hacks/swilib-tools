@@ -20,8 +20,8 @@ program
 program
 	.command('server')
 	.description('Read and save phone memory')
-	.option('-l, --listen [ADDR]', 'Listen address (default: 127.0.0.1)', '127.0.0.1')
-	.option('-p, --port [PORT]', 'Listen port (default: 3333)', '3333')
+	.option('-l, --listen [ADDR]', 'Listen address', '127.0.0.1')
+	.option('-p, --port [PORT]', 'Listen port', '31000')
 	.action(cmdServer);
 
 program

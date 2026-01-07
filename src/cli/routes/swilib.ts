@@ -1,48 +1,40 @@
 import { FastifyInstance } from "fastify";
-import { SDK_DIR } from "#src/utils.js";
-import {
-	analyzeSwilib,
-	getGhidraSymbols,
-	getIdaSymbols,
-	getSwiBlib,
-	loadSwilibConfig,
-	serializeSwilib
-} from "@sie-js/swilib";
-import { getSwilibSummaryAnalysis } from "#src/analyze.js";
+import { getGhidraSymbols, getIdaSymbols, getSwiBlib, serializeSwilib } from "@sie-js/swilib";
+import { getSwilibDevices, getSwilibSummaryAnalysis, getTargetSwilibAnalysis } from "#src/analyze.js";
 import { loadLibraryForTarget } from "#src/utils/swilib.js";
 
+interface DownloadRoute {
+	Params: {
+		target: string;
+		type: string;
+	}
+}
+
+interface AnalyzeSwilibRoute {
+	Params: {
+		target: string;
+	}
+}
+
 export function swilibRoutes(fastify: FastifyInstance) {
-	// Get phone list
-	fastify.get('/phones', async () => {
-		const swilibConfig = loadSwilibConfig(SDK_DIR);
-		return swilibConfig.targets.map((target) => {
-			const model = target.split('v')[0];
-			const sw = +target.split('v')[1];
-			return {
-				target: target,
-				model,
-				sw,
-				platform: swilibConfig.platforms.get(model),
-				patchId: swilibConfig.patches.get(target),
-			};
-		});
+	// Get devices list
+	fastify.get('/devices', async () => {
+		return getSwilibDevices();
 	});
 
 	// Analyze all targets
-	fastify.get('/analyze/all', async (request, reply) => {
+	fastify.get('/analyze/all', async () => {
 		return getSwilibSummaryAnalysis();
 	});
 
 	// Analyze swilib
-	fastify.get<{ Params: { target: string } }>('/analyze/:target', async (request, reply) => {
+	fastify.get<AnalyzeSwilibRoute>('/analyze/:target', async (request) => {
 		const target = request.params.target;
-		const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target);
-		const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
-		return { swilib, analysis };
+		return getTargetSwilibAnalysis(target);
 	});
 
 	// Download as .blib, .vkp, .txt or .idc
-	fastify.get<{ Params: { target: string; type: string } }>('/download/:target/:filename.:type', async (request, reply) => {
+	fastify.get<DownloadRoute>('/download/:target/:filename.:type', async (request, reply) => {
 		const target = request.params.target;
 		const type = request.params.type;
 		const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target);

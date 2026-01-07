@@ -39,7 +39,7 @@ export async function loadLibraryForTarget(target: string, file?: string){
 export async function loadLibraryForAll() {
 	let maxFunctionId = 0;
 	const platformToLib = {} as Record<SwiPlatform, Sdklib>;
-	const platformToPatterns = {} as Record<SwiPlatform, SwilibPattern[]>;
+	const platformToPatterns = {} as Record<SwiPlatform, Array<SwilibPattern | undefined>>;
 	for (const platform of getSwilibPlatforms()) {
 		platformToLib[platform] = await parseLibraryFromSDK(SDK_DIR, platform);
 		platformToPatterns[platform] = parsePatterns(await fs.promises.readFile(`${SDK_DIR}/swilib/patterns/${platform}.ini`));

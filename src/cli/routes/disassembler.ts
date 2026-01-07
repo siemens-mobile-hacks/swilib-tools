@@ -4,6 +4,18 @@ import { getDataTypesHeader, isValidSwilibPlatform } from "@sie-js/swilib";
 
 const PMB887X_DEV = `https://siemens-mobile-hacks.github.io/pmb887x-dev`;
 
+interface DownloadHeadersRoute {
+	Params: {
+		platform: string;
+	}
+}
+
+interface DownloadCpuSymbolsRoute {
+	Params: {
+		filename: string;
+	}
+}
+
 export async function disassemblerRoutes(fastify: FastifyInstance) {
 	// List CPU symbols for disassembler
 	fastify.get('/cpu-symbols', async (request, reply) => {
@@ -17,17 +29,17 @@ export async function disassemblerRoutes(fastify: FastifyInstance) {
 	});
 
 	// Download data types for disassembler
-	fastify.get<{ Params: { platform: string } }>('/download/types/:platform/:filename.h', async (request, reply) => {
+	fastify.get<DownloadHeadersRoute>('/download/types/:platform/:filename.h', async (request, reply) => {
 		const platform = request.params.platform;
 		if (!isValidSwilibPlatform(platform))
 			return reply.code(404);
-		const header = getDataTypesHeader(SDK_DIR, platform);
+		const header = await getDataTypesHeader(SDK_DIR, platform);
 		return reply.header('Content-Disposition', 'attachment').send(header);
 	});
 
 	// Download CPU symbols for disassembler
-	fastify.get<{ Params: { cpu: string; ext: string } }>('/download/cpu/:cpu/:filename.:ext', async (request, reply) => {
-		const url = `${PMB887X_DEV}/cpu-${request.params.cpu}.${request.params.ext}`;
+	fastify.get<DownloadCpuSymbolsRoute>('/download/cpu/:filename', async (request, reply) => {
+		const url = `${PMB887X_DEV}/${request.params.filename}`;
 		const response = await fetch(url);
 		if (response.ok) {
 			reply.header('Content-Disposition', 'attachment');

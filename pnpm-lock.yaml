@@ -15,8 +15,8 @@ importers:
         specifier: ^8.1.0
         version: 8.1.0(@types/node@24.10.1)
       '@sie-js/swilib':
-        specifier: ^3.0.0
-        version: 3.0.0
+        specifier: ^3.0.1
+        version: 3.0.1
       '@sie-js/vkp':
         specifier: ^2.0.1
         version: 2.0.1
@@ -233,8 +233,8 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@sie-js/swilib@3.0.0':
-    resolution: {integrity: sha512-S7dTctuSSPvswCu0Ra6yd2TtLBXSoR7akFHRnsZqILTMo5Z00e8LAz5S+6onpwipMKdcoaIMlEgw0pldUh7Utw==}
+  '@sie-js/swilib@3.0.1':
+    resolution: {integrity: sha512-xno3V3MFOmSXuG1l6Arjy63M+kkTp1/oBLZll3v0+Ofi5yncM6hxu02ghdQPNFqVVNyWGIDu/0kvy8eD8SYMZw==}
 
   '@sie-js/vkp@2.0.1':
     resolution: {integrity: sha512-fab9wJcf00X03c/szEGDtI6tx4f++nWAB6HknrfljlU0v5GQ4hQD5pwhh+AR2hA02ey8Z/vuAyAxGW8L0ubfBg==}
@@ -379,11 +379,11 @@ packages:
   fastify@5.6.2:
     resolution: {integrity: sha512-dPugdGnsvYkBlENLhCgX8yhyGCsCPrpA8lFWbTNU428l+YOnLgYHR69hzV8HWPC79n536EqzqQtvhtdaCE0dKg==}
 
-  fastq@1.19.1:
-    resolution: {integrity: sha512-GwLTyxkCXjXbxqIhTsMI2Nui8huMPtnxg7krajPJAjnEG/iiOS7i+zCtWGZR9G0NBKbXKh6X9m9UIsYX/N6vvQ==}
+  fastq@1.20.1:
+    resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
 
-  find-my-way@9.3.0:
-    resolution: {integrity: sha512-eRoFWQw+Yv2tuYlK2pjFS2jGXSxSppAs3hSQjfxVKxM5amECzIgYYc1FEI8ZmhSh/Ig+FrKEz43NLRKJjYCZVg==}
+  find-my-way@9.4.0:
+    resolution: {integrity: sha512-5Ye4vHsypZRYtS01ob/iwHzGRUDELlsoCftI/OZFhcLs1M0tkGPcXldE80TAZC5yYuJMBPJQQ43UHlqbJWiX2w==}
     engines: {node: '>=20'}
 
   foreground-child@3.3.1:
@@ -585,8 +585,8 @@ packages:
     resolution: {integrity: sha512-qMCMfhY040cVHT43K9BFygqYbUPFZKHOg7K73mtTWJRb8pyP3fzf4Ixd5SzdEJQ6MRUg/WBnOLxghZtKKurENQ==}
     engines: {node: '>=10'}
 
-  smol-toml@1.5.2:
-    resolution: {integrity: sha512-QlaZEqcAH3/RtNyet1IPIYPsEWAaYyXXv1Krsi+1L/QHppjX4Ifm8MQsBISz9vE8cHicIq3clogsheili5vhaQ==}
+  smol-toml@1.6.0:
+    resolution: {integrity: sha512-4zemZi0HvTnYwLfrpk/CF9LOd9Lt87kAt50GnqhMpyF9U3poDAP2+iukq2bZsO/ufegbYehBkqINbsWxj4l4cw==}
     engines: {node: '>= 18'}
 
   sonic-boom@4.2.0:
@@ -853,11 +853,11 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@sie-js/swilib@3.0.0':
+  '@sie-js/swilib@3.0.1':
     dependencies:
       '@npmcli/promise-spawn': 9.0.1
       '@sie-js/vkp': 2.0.1
-      smol-toml: 1.5.2
+      smol-toml: 1.6.0
       sprintf-js: 1.1.3
 
   '@sie-js/vkp@2.0.1':
@@ -904,7 +904,7 @@ snapshots:
   avvio@9.1.0:
     dependencies:
       '@fastify/error': 4.2.0
-      fastq: 1.19.1
+      fastq: 1.20.1
 
   balanced-match@1.0.2: {}
 
@@ -988,7 +988,7 @@ snapshots:
       abstract-logging: 2.0.1
       avvio: 9.1.0
       fast-json-stringify: 6.1.1
-      find-my-way: 9.3.0
+      find-my-way: 9.4.0
       light-my-request: 6.6.0
       pino: 10.1.0
       process-warning: 5.0.0
@@ -997,11 +997,11 @@ snapshots:
       semver: 7.7.3
       toad-cache: 3.7.0
 
-  fastq@1.19.1:
+  fastq@1.20.1:
     dependencies:
       reusify: 1.1.0
 
-  find-my-way@9.3.0:
+  find-my-way@9.4.0:
     dependencies:
       fast-deep-equal: 3.1.3
       fast-querystring: 1.1.2
@@ -1189,7 +1189,7 @@ snapshots:
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
 
-  smol-toml@1.5.2: {}
+  smol-toml@1.6.0: {}
 
   sonic-boom@4.2.0:
     dependencies:

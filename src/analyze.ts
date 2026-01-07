@@ -6,9 +6,11 @@ import {
 	getSwilibPlatforms,
 	loadSwilibConfig,
 	parseSwilibPatch,
+	SwilibAnalysisResult,
+	SwiPlatform,
 	SwiType
 } from "@sie-js/swilib";
-import { loadLibraryForAll } from "#src/utils/swilib.js";
+import { loadLibraryForAll, loadLibraryForTarget } from "#src/utils/swilib.js";
 
 export enum SwiFlags {
 	NONE		= 0,
@@ -17,35 +19,60 @@ export enum SwiFlags {
 	DIRTY		= 1 << 2,
 }
 
-export interface PatternSummary {
+export interface PatternEntry {
 	id: number;
 	name?: string;
 	symbol?: string;
 	coverage: number[];
 }
 
-export interface SwilibEntrySummaryAnalysis {
+export interface SummarySwilibAnalysisEntry {
 	id: number;
 	name?: string;
 	aliases: string[];
 	flags: SwiFlags;
 	file: string;
 	type: SwiType;
-	coverage: Array<number | undefined>;
-	ptrCoverage: Array<number | undefined>;
-	patterns: Array<string | undefined>;
+	coverage: Record<string, number>;
+	patterns: Record<string, string>;
+	targets: string[];
 }
 
-export interface SwilibSummaryAnalysis {
-	entries: SwilibEntrySummaryAnalysis[];
-	targetToEntries: Record<string, number[]>;
+export interface SummarySwilibAnalysis {
+	entries: SummarySwilibAnalysisEntry[];
 	coverage: Record<string, number>;
 	nextId: number;
+	files: string[];
 }
 
-export async function getPatternsSummaryAnalysis(): Promise<PatternSummary[]> {
+export interface SwilibDevice {
+	target: string;
+	model: string;
+	sw: number;
+	platform: string;
+	patchId: number;
+}
+
+interface TargetSwilibAnalysisEntry {
+	id: number;
+	symbol?: string;
+	value?: number;
+	error?: string;
+	missing?: boolean;
+}
+
+interface TargetSwilibAnalysis {
+	target: string;
+	platform: SwiPlatform;
+	entries: TargetSwilibAnalysisEntry[];
+	offset: number;
+	patchId: number;
+	statistic: SwilibAnalysisResult['stat'];
+}
+
+export async function getPatternsSummaryAnalysis(): Promise<PatternEntry[]> {
 	const { maxFunctionId, platformToLib, platformToPatterns } = await loadLibraryForAll();
-	const allPatterns: PatternSummary[] = [];
+	const allPatterns: PatternEntry[] = [];
 	for (let id = 0; id < maxFunctionId; id++) {
 		const sdkEntry = getSwilibPlatforms()
 			.map(p => platformToLib[p].entries[id])
@@ -74,7 +101,48 @@ export async function getPatternsSummaryAnalysis(): Promise<PatternSummary[]> {
 	return allPatterns;
 }
 
-export async function getSwilibSummaryAnalysis(): Promise<SwilibSummaryAnalysis> {
+export function getSwilibDevices(): SwilibDevice[] {
+	const swilibConfig = loadSwilibConfig(SDK_DIR);
+	return swilibConfig.targets.map((target) => {
+		const model = target.split('v')[0];
+		const sw = +target.split('v')[1];
+		return {
+			target: target,
+			model,
+			sw,
+			platform: swilibConfig.platforms.get(model)!,
+			patchId: Number(swilibConfig.patches.get(target) ?? 0),
+		};
+	});
+}
+
+export async function getTargetSwilibAnalysis(target: string): Promise<TargetSwilibAnalysis> {
+	const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target);
+	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
+
+	const entries: TargetSwilibAnalysisEntry[] = [];
+	for (let id = 0; id < sdklib.entries.length; id++) {
+		const swiEntry = swilib.entries[id];
+		entries.push({
+			id,
+			symbol: swiEntry?.symbol,
+			value: swiEntry?.value,
+			error: analysis.errors[id],
+			missing: analysis.missing.includes(id),
+		});
+	}
+
+	return {
+		target: swilib.target!,
+		platform: swilib.platform,
+		entries,
+		offset: swilib.offset,
+		patchId: swilibConfig.patches.get(target) ?? 0,
+		statistic: analysis.stat,
+	};
+}
+
+export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis> {
 	const swilibConfig = loadSwilibConfig(SDK_DIR);
 	const coverage: Record<string, Record<number, { ok: number; bad: number }>> = {};
 	const targetCoverage: Record<string, number> = {};
@@ -125,7 +193,8 @@ export async function getSwilibSummaryAnalysis(): Promise<SwilibSummaryAnalysis>
 		targetCoverage[target] = +(goodFunctionsCnt / sdklib.entries.length * 100).toFixed(1);
 	}
 
-	const entries: SwilibEntrySummaryAnalysis[] = [];
+	const allFiles: string[] = [];
+	const entries: SummarySwilibAnalysisEntry[] = [];
 	for (let id = 0; id < maxFunctionId; id++) {
 		const sdkEntry = getSwilibPlatforms()
 			.map(p => platformToLib[p].entries[id])
@@ -144,9 +213,9 @@ export async function getSwilibSummaryAnalysis(): Promise<SwilibSummaryAnalysis>
 				flags,
 				file,
 				type: SwiType.EMPTY,
-				coverage: Array(getSwilibPlatforms().length).fill(undefined),
-				ptrCoverage: Array(getSwilibPlatforms().length).fill(undefined),
-				patterns: Array(getSwilibPlatforms().length).fill(undefined),
+				coverage: {},
+				patterns: {},
+				targets: [],
 			};
 			continue;
 		}
@@ -166,23 +235,22 @@ export async function getSwilibSummaryAnalysis(): Promise<SwilibSummaryAnalysis>
 				aliases.push(aliasName);
 		}
 
-		const entryCoverage: Array<number | undefined> = [];
-		const patternCoverage: Array<number | undefined> = [];
-		const patterns: Array<string | undefined> = [];
+		const entryCoverage: Record<string, number> = {};
+		const patterns: Record<string, string> = {};
 		for (const platform of getSwilibPlatforms()) {
 			const ptrlib = platformToPatterns[platform];
+			const pattern = ptrlib[id]?.pattern;
+
 			if (sdkEntry.builtin?.includes(platform)) {
-				entryCoverage.push(200); // special value "builtin"
-				patternCoverage.push(200); // special value "builtin"
+				entryCoverage[platform] = 200; // special value "builtin"
 			} else if (sdkEntry.platforms && !sdkEntry.platforms.includes(platform)) {
-				entryCoverage.push(-200); // special value "not available"
-				patternCoverage.push(-200); // special value "builtin"
+				entryCoverage[platform] = -200; // special value "not available"
 			} else {
 				const coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
-				entryCoverage.push(+coveragePct.toFixed(1));
-				patternCoverage.push(ptrlib[id]?.pattern != null ? 100 : 0);
+				entryCoverage[platform] = +coveragePct.toFixed(1);
+				if (pattern)
+					patterns[platform] = pattern;
 			}
-			patterns.push(ptrlib[id]?.pattern);
 		}
 
 		let flags = SwiFlags.NONE;
@@ -194,6 +262,8 @@ export async function getSwilibSummaryAnalysis(): Promise<SwilibSummaryAnalysis>
 			flags |= SwiFlags.DIRTY;
 
 		const file = sdkEntry.files[0];
+		if (!allFiles.includes(file))
+			allFiles.push(file);
 
 		entries[id] = {
 			id,
@@ -203,16 +273,16 @@ export async function getSwilibSummaryAnalysis(): Promise<SwilibSummaryAnalysis>
 			file,
 			type: sdkEntry.type,
 			coverage: entryCoverage,
-			ptrCoverage: patternCoverage,
-			patterns
+			patterns,
+			targets: Object.keys(targetToEntries).filter((target) => targetToEntries[target].includes(id)),
 		};
 	}
 
 	return {
 		entries: entries,
-		targetToEntries,
 		coverage: targetCoverage,
-		nextId: maxFunctionId
+		nextId: maxFunctionId,
+		files: allFiles,
 	};
 }
 

@@ -1,16 +1,9 @@
 #!/bin/bash
 set -e
 set -x
-git fetch origin
-git diff main origin/main
+cd "$(dirname "$0")"
 
-echo ""
-read -p "Deploy this changes? [y/n] "
-echo ""
-
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
-	git merge origin/main
-	npm install
-	pm2 reload swilib-tools
-fi
+git pull
+pnpm install --frozen-lockfile
+pnpm build
+pm2 restart ./ecosystem.config.cjs
