@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
-import { SDK_DIR } from "#src/utils.js";
 import { getDataTypesHeader, isValidSwilibPlatform } from "@sie-js/swilib";
+import { SDK_DIR } from "#src/utils/sdk.js";
 
 const PMB887X_DEV = `https://siemens-mobile-hacks.github.io/pmb887x-dev`;
 

@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { getSwilibPatch, SDK_DIR } from "#src/utils.js";
 import {
 	getSwilibPlatform,
 	getSwilibPlatforms,
@@ -11,6 +10,7 @@ import {
 	SwilibPattern,
 	SwiPlatform
 } from "@sie-js/swilib";
+import { getSwilibPatch, SDK_DIR } from "#src/utils/sdk.js";
 
 export async function loadLibraryForTarget(target: string, file?: string){
 	const swilibConfig = loadSwilibConfig(SDK_DIR);
@@ -22,7 +22,7 @@ export async function loadLibraryForTarget(target: string, file?: string){
 		file = getSwilibPatch(swilibConfig, target);
 
 	if (!file)
-		throw new Error(`swilib.vkp not found!`);
+		throw new Error(`swilib.vkp not found.`);
 
 	const swilib = parseSwilibPatch(swilibConfig, fs.readFileSync(file), { target });
 	swilib.entries[sdklib.entries.length - 1] = swilib.entries[sdklib.entries.length - 1] || undefined;

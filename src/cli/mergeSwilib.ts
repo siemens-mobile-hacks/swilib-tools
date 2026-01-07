@@ -2,7 +2,6 @@ import fs from 'fs';
 import chalk from 'chalk';
 import * as inquirer from '@inquirer/prompts';
 import { table as asciiTable } from 'table';
-import { SDK_DIR } from '../utils.js';
 import { sprintf } from 'sprintf-js';
 import { CLIBaseOptions } from "#src/cli.js";
 import { createAppCommand } from "#src/utils/command.js";
@@ -16,6 +15,7 @@ import {
 	Swilib,
 	SwilibAnalysisResult
 } from "@sie-js/swilib";
+import { SDK_DIR } from "#src/utils/sdk.js";
 
 interface Options extends CLIBaseOptions {
 	target: string;
@@ -41,7 +41,7 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 	}
 
 	if (swilibs[0].offset != swilibs[1].offset) {
-		console.error(chalk.red(`Swilib's have different base offsets, merge is not possible.`));
+		console.error(chalk.red(`The swilibs have different base offsets; merging is not possible.`));
 		return;
 	}
 
@@ -109,7 +109,7 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 			choices.push({ name: 'Remove from swilib', value: -1 });
 
 			const answer = await inquirer.select({
-				message: 'Choose right variant.',
+				message: 'Choose the correct variant:',
 				choices
 			});
 			answers.set(id, answer);

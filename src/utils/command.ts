@@ -26,7 +26,7 @@ async function runCleanupHandlers() {
 		try {
 			await handler();
 		} catch (e) {
-			console.error(`Error while running cleanup handler`, e);
+			console.error(`Error while running the cleanup handler:`, e);
 		}
 	}
 }

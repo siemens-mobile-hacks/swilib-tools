@@ -4,7 +4,8 @@ import { CLIBaseOptions } from "#src/cli.js";
 import { createAppCommand } from "#src/utils/command.js";
 import { loadLibraryForAll, loadLibraryForTarget } from "#src/utils/swilib.js";
 import { getSwilibPlatform, getSwilibPlatforms, loadSwilibConfig, Swilib, SwiType } from "@sie-js/swilib";
-import { SDK_DIR } from "#src/utils.js";
+
+import { SDK_DIR } from "#src/utils/sdk.js";
 
 interface Options extends CLIBaseOptions {
 	output: string;
@@ -138,7 +139,7 @@ export default createAppCommand<Options>(async ({ output }) => {
 	let code: string[] = [];
 
 	// stubs.cpp
-	code.push(`/* Auto-generated file!!! See @sie-js/swilib-tools! */`);
+	code.push(`/* Auto-generated file. See @sie-js/swilib-tools. */`);
 	code.push(`#include "swilib.h"`);
 	code.push(`#include <swilib.h>`);
 	code.push(`#include <swilib/openssl.h>`);
@@ -164,7 +165,7 @@ export default createAppCommand<Options>(async ({ output }) => {
 	fs.writeFileSync(`${output}/src/swilib.c`, code.join("\n"));
 
 	code = [];
-	code.push(`/* Auto-generated file!!! See @sie-js/swilib-tools! */`);
+	code.push(`/* Auto-generated file. See @sie-js/swilib-tools. */`);
 	code.push(`#include <swilib.h>`);
 	code.push(`#include <swilib/openssl.h>`);
 	code.push(`#include <swilib/nucleus.h>`);
@@ -188,6 +189,6 @@ function parseReturnType(def: string): string {
 	def = def.replace(/\s+/g, ' ').trim();
 	const m = def.match(/^(.*?\s?[*]?)([\w_]+)\(.*?\)$/i);
 	if (!m)
-		throw new Error(`Can't parse C definition: ${def}`);
+		throw new Error(`Could not parse C definition: ${def}`);
 	return m[1].trim();
 }

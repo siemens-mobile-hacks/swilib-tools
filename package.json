@@ -10,9 +10,9 @@
 		"dev": "tsc --watch"
 	},
 	"bin": "./dist/bin/swilib-tools.js",
-	"author": "",
+	"author": "kirill.zhumarin@gmail.com",
 	"license": "MIT",
-	"description": "",
+	"description": "CLI tools for Siemens Mobile phone development",
 	"dependencies": {
 		"@fastify/cors": "^11.2.0",
 		"@inquirer/prompts": "^8.1.0",

@@ -7,19 +7,27 @@ import cmdMergeSwilibs from "#src/cli/mergeSwilib.js";
 import cmdConvert from "#src/cli/convert.js";
 import cmdGenAsmSymbols from "#src/cli/genAsmSymbols.js";
 import cmdGenSimulatorApi from "#src/cli/genSimulatorApi.js";
+import { findDefaultDevRoot, setDevRoot } from "#src/utils/sdk.js";
 
 export interface CLIBaseOptions {
-
+	root?: string;
 }
+
+const defaultDevRoot = findDefaultDevRoot() ?? process.env.SIE_DEV_ROOT;
 
 program
 	.name("swilib-tools")
 	.version(getVersion(), '-v, --version')
-	.description('CLI tool for Siemens Mobile phones development.');
+	.requiredOption('-R, --root', 'path to the root directory with the SDK and other repos', defaultDevRoot)
+	.description('CLI tool for Siemens Mobile phone development.')
+	.hook('preAction', (cmd) => {
+		if (cmd.opts().root)
+			setDevRoot(cmd.opts().root);
+	});
 
 program
 	.command('server')
-	.description('Read and save phone memory')
+	.description('API for web frontend')
 	.option('-l, --listen [ADDR]', 'Listen address', '127.0.0.1')
 	.option('-p, --port [PORT]', 'Listen port', '31000')
 	.action(cmdServer);
@@ -59,14 +67,14 @@ program
 
 program
 	.command('gen-asm-symbols')
-	.description('Generate assembler symbols for SDK')
-	.requiredOption('-o, --output <DIR>', 'Path to SDK directory')
+	.description('Generate assembler symbols for the SDK')
+	.requiredOption('-o, --output <DIR>', 'Path to the SDK directory')
 	.action(cmdGenAsmSymbols);
 
 program
 	.command('gen-simulator-api')
-	.description('Generate API stubs for elf emulator')
-	.requiredOption('-o, --output <DIR>', 'Path to emulator directory')
+	.description('Generate API stubs for the ELF emulator')
+	.requiredOption('-o, --output <DIR>', 'Path to the emulator directory')
 	.action(cmdGenSimulatorApi);
 
 program.showSuggestionAfterError(true);

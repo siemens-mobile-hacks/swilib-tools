@@ -3,9 +3,9 @@ import path from 'node:path';
 import { sprintf } from 'sprintf-js';
 import { CLIBaseOptions } from "#src/cli.js";
 import { createAppCommand } from "#src/utils/command.js";
-import { SDK_DIR } from "#src/utils.js";
 import { loadLibraryForTarget } from "#src/utils/swilib.js";
 import { analyzeSwilib, getSwilibPlatforms, loadSwilibConfig, SwiValueType } from "@sie-js/swilib";
+import { SDK_DIR } from "#src/utils/sdk.js";
 
 interface Options extends CLIBaseOptions {
 	output: string;

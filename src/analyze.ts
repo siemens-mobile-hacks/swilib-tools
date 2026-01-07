@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { getSwilibPatch, SDK_DIR } from './utils.js';
 import {
 	analyzeSwilib,
 	getSwilibPlatform,
@@ -11,6 +10,7 @@ import {
 	SwiType
 } from "@sie-js/swilib";
 import { loadLibraryForAll, loadLibraryForTarget } from "#src/utils/swilib.js";
+import { getSwilibPatch, SDK_DIR } from "#src/utils/sdk.js";
 
 export enum SwiFlags {
 	NONE		= 0,

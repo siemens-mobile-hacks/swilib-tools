@@ -75,7 +75,7 @@ export default createAppCommand<Options>(async ({ target, file }) => {
 				chalk.red(error)
 			]);
 		}
-		console.log(chalk.bold(chalk.red(`Functions with error:`)));
+		console.log(chalk.bold(chalk.red(`Functions with errors:`)));
 		console.log(asciiTable(errorsTable, tableConfig));
 	} else {
 		console.log(chalk.bold(chalk.green('No errors in swilib!')));

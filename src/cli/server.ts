@@ -22,6 +22,6 @@ export default createAppCommand<Options>(async (options) => {
 			fastify.log.error(err);
 			process.exit(1);
 		}
-		console.log(`Listening server on ${address}`);
+		console.log(`Server listening on ${address}`);
 	});
 });
