@@ -23,8 +23,13 @@ export async function getDevRootRevision() {
 	const revision: string[] = [];
 	for (const repo of [SDK_DIR, PATCHES_DIR]) {
 		const git = simpleGit(repo);
-		const headHashId = await git.revparse("HEAD");
-		revision.push(headHashId);
+		const repoStatus = await git.status();
+		if (repoStatus.isClean()) {
+			const headHashId = await git.revparse("HEAD");
+			revision.push(headHashId);
+		} else {
+			revision.push(Date.now().toString());
+		}
 	}
 	return revision.join('-');
 }
