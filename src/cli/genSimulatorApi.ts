@@ -34,7 +34,7 @@ export default createAppCommand<Options>(async ({ output }) => {
 		targetToSwilib[target] = swilib;
 	}
 
-	const { maxFunctionId, platformToLib } = await loadLibraryForAll();
+	const { maxFunctionId, platformToLib } = await loadLibraryForAll(swilibConfig);
 	for (let id = 0; id <= maxFunctionId; id++) {
 		const sdkEntry = getSwilibPlatforms()
 			.map(p => platformToLib[p].entries[id])

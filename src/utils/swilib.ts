@@ -6,7 +6,7 @@ import {
 	parseLibraryFromSDK,
 	parsePatterns,
 	parseSwilibPatch,
-	Sdklib,
+	Sdklib, SwilibConfig,
 	SwilibPattern,
 	SwiPlatform
 } from "@sie-js/swilib";
@@ -24,8 +24,9 @@ export async function loadLibraryForTarget(target: string, file?: string){
 	if (!file)
 		throw new Error(`swilib.vkp not found.`);
 
+	const maxFunctionId = Math.max(sdklib.entries.length - 1, Math.max(...swilibConfig.functions.reserved));
 	const swilib = parseSwilibPatch(swilibConfig, fs.readFileSync(file), { target });
-	swilib.entries[sdklib.entries.length - 1] = swilib.entries[sdklib.entries.length - 1] || undefined;
+	swilib.entries[maxFunctionId] = swilib.entries[maxFunctionId] || undefined;
 
 	return {
 		swilibConfig,
@@ -36,7 +37,7 @@ export async function loadLibraryForTarget(target: string, file?: string){
 	};
 }
 
-export async function loadLibraryForAll() {
+export async function loadLibraryForAll(swilibConfig: SwilibConfig) {
 	let maxFunctionId = 0;
 	const platformToLib = {} as Record<SwiPlatform, Sdklib>;
 	const platformToPatterns = {} as Record<SwiPlatform, Array<SwilibPattern | undefined>>;
@@ -45,5 +46,6 @@ export async function loadLibraryForAll() {
 		platformToPatterns[platform] = parsePatterns(await fs.promises.readFile(`${SDK_DIR}/swilib/patterns/${platform}.ini`));
 		maxFunctionId = Math.max(maxFunctionId, platformToLib[platform].entries.length);
 	}
+	maxFunctionId = Math.max(maxFunctionId, Math.max(...swilibConfig.functions.reserved) + 1);
 	return { maxFunctionId, platformToLib, platformToPatterns };
 }

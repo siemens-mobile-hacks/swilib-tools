@@ -6,7 +6,7 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "tsc",
-		"dev": "tsc --watch"
+		"dev": "tsx --watch src/cli.ts server"
 	},
 	"bin": "dist/src/cli.js",
 	"author": "kirill.zhumarin@gmail.com",
@@ -15,14 +15,14 @@
 	"dependencies": {
 		"@fastify/compress": "^8.3.1",
 		"@fastify/cors": "^11.2.0",
-		"@inquirer/prompts": "^8.1.0",
-		"@sie-js/swilib": "^3.0.1",
+		"@inquirer/prompts": "^8.2.0",
+		"@sie-js/swilib": "^3.0.2",
 		"@sie-js/vkp": "^2.0.1",
 		"@types/debug": "^4.1.12",
 		"chalk": "^5.6.2",
 		"commander": "^14.0.2",
 		"debug": "^4.4.3",
-		"fastify": "^5.6.2",
+		"fastify": "^5.7.1",
 		"glob": "11.1.0",
 		"json5": "^2.2.3",
 		"simple-git": "^3.30.0",

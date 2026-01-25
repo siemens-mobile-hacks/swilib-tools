@@ -35,6 +35,7 @@ export interface SummarySwilibAnalysisEntry {
 	type: SwiType;
 	coverage: Record<string, number>;
 	patterns: Record<string, string>;
+	values: Record<string, number>;
 	targets: string[];
 }
 
@@ -71,7 +72,8 @@ interface TargetSwilibAnalysis {
 }
 
 export async function getPatternsSummaryAnalysis(): Promise<PatternEntry[]> {
-	const { maxFunctionId, platformToLib, platformToPatterns } = await loadLibraryForAll();
+	const swilibConfig = loadSwilibConfig(SDK_DIR);
+	const { maxFunctionId, platformToLib, platformToPatterns } = await loadLibraryForAll(swilibConfig);
 	const allPatterns: PatternEntry[] = [];
 	for (let id = 0; id < maxFunctionId; id++) {
 		const sdkEntry = getSwilibPlatforms()
@@ -121,7 +123,7 @@ export async function getTargetSwilibAnalysis(target: string): Promise<TargetSwi
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 
 	const entries: TargetSwilibAnalysisEntry[] = [];
-	for (let id = 0; id < sdklib.entries.length; id++) {
+	for (let id = 0; id < swilib.entries.length; id++) {
 		const swiEntry = swilib.entries[id];
 		entries.push({
 			id,
@@ -146,9 +148,10 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 	const swilibConfig = loadSwilibConfig(SDK_DIR);
 	const coverage: Record<string, Record<number, { ok: number; bad: number }>> = {};
 	const targetCoverage: Record<string, number> = {};
-	const targetToEntries: Record<string, number[]> = {};
+	const entryValueByTargets: Record<number, Record<string, number>> = {};
+	const entryCoverageByTargets: Record<number, string[]> = {};
 	const dirtyEntries: Record<number, boolean> = {};
-	const { maxFunctionId, platformToLib, platformToPatterns } = await loadLibraryForAll();
+	const { maxFunctionId, platformToLib, platformToPatterns } = await loadLibraryForAll(swilibConfig);
 
 	for (const target of swilibConfig.targets) {
 		const patchFile = getSwilibPatch(swilibConfig, target);
@@ -164,6 +167,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 		let goodFunctionsCnt = 0;
 		for (let id = 0; id < sdklib.entries.length; id++) {
 			const sdkEntry = sdklib.entries[id];
+			const swiEntry = swilib.entries[id];
 			if (sdkEntry) {
 				coverage[platform] = coverage[platform] ?? {};
 				coverage[platform][id] = coverage[platform][id] ?? { ok: 0, bad: 0 };
@@ -175,18 +179,20 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 					goodFunctionsCnt++;
 					coverage[platform][id].ok++;
 					coverage["ALL"][id].ok++;
+					entryCoverageByTargets[id] = entryCoverageByTargets[id] ?? [];
+					entryCoverageByTargets[id].push(target);
 				} else {
 					coverage[platform][id].bad++;
 					coverage["ALL"][id].bad++;
 				}
 			} else {
-				if (swilib.entries[id]?.value != null)
+				if (swiEntry?.value != null)
 					dirtyEntries[id] = true;
 			}
 
-			if (!errors[id] && !missing.includes(id)) {
-				targetToEntries[target] = targetToEntries[target] || [];
-				targetToEntries[target].push(id);
+			if (swiEntry?.value != null) {
+				entryValueByTargets[id] = entryValueByTargets[id] || {};
+				entryValueByTargets[id][target] = swiEntry!.value;
 			}
 		}
 
@@ -201,11 +207,17 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 			.find(Boolean);
 
 		if (!sdkEntry) {
+			const isReserved = swilibConfig.functions.reserved.has(id);
+			const file = isReserved ? "swilib/reserved.h" : "swilib/unused.h";
+			if (!allFiles.includes(file))
+				allFiles.push(file);
+
 			let flags = SwiFlags.NONE;
 			if (dirtyEntries[id])
 				flags |= SwiFlags.DIRTY;
+			if (isReserved)
+				flags |= SwiFlags.BUILTIN;
 
-			const file = "swilib/unused.h";
 			entries[id] = {
 				id,
 				name: undefined,
@@ -215,7 +227,8 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 				type: SwiType.EMPTY,
 				coverage: {},
 				patterns: {},
-				targets: [],
+				values: entryValueByTargets[id] ?? {},
+				targets: entryCoverageByTargets[id] ?? [],
 			};
 			continue;
 		}
@@ -274,7 +287,8 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 			type: sdkEntry.type,
 			coverage: entryCoverage,
 			patterns,
-			targets: Object.keys(targetToEntries).filter((target) => targetToEntries[target].includes(id)),
+			values: entryValueByTargets[id] ?? {},
+			targets: entryCoverageByTargets[id] ?? [],
 		};
 	}
 
