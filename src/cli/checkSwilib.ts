@@ -23,7 +23,7 @@ export default createAppCommand<Options>(async ({ target, file }) => {
 		ptrlib,
 		sdklib,
 		swilib
-	} = await loadLibraryForTarget(target, file);
+	} = await loadLibraryForTarget(target, { file });
 
 	console.log(`Checking ${file} (${platform})`);
 	console.log();

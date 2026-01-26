@@ -12,20 +12,27 @@ import {
 } from "@sie-js/swilib";
 import { getSwilibPatch, SDK_DIR } from "#src/utils/sdk.js";
 
-export async function loadLibraryForTarget(target: string, file?: string){
+export interface SwilibInputSource {
+	code?: string;
+	file?: string;
+}
+
+export async function loadLibraryForTarget(target: string, { file, code }: SwilibInputSource = {}){
 	const swilibConfig = loadSwilibConfig(SDK_DIR);
 	const platform = getSwilibPlatform(swilibConfig, target);
 	const ptrlib = parsePatterns(fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`));
 	const sdklib = await parseLibraryFromSDK(SDK_DIR, platform);
 
-	if (!file)
-		file = getSwilibPatch(swilibConfig, target);
-
-	if (!file)
-		throw new Error(`swilib.vkp not found.`);
+	if (code == null) {
+		if (!file)
+			file = getSwilibPatch(swilibConfig, target);
+		if (!file)
+			throw new Error(`swilib.vkp not found.`);
+		code = (await fs.promises.readFile(file)).toString();
+	}
 
 	const maxFunctionId = Math.max(sdklib.entries.length - 1, Math.max(...swilibConfig.functions.reserved));
-	const swilib = parseSwilibPatch(swilibConfig, fs.readFileSync(file), { target });
+	const swilib = parseSwilibPatch(swilibConfig, code, { target });
 	swilib.entries[maxFunctionId] = swilib.entries[maxFunctionId] || undefined;
 
 	return {

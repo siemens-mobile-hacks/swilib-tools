@@ -14,6 +14,9 @@ interface DownloadRoute {
 interface AnalyzeSwilibRoute {
 	Params: {
 		target: string;
+	},
+	Body: {
+		code?: string;
 	}
 }
 
@@ -32,6 +35,12 @@ export function swilibRoutes(fastify: FastifyInstance) {
 	fastify.get<AnalyzeSwilibRoute>('/analyze/:target', async (request) => {
 		const target = request.params.target;
 		return cached(`swilib-analysis-${target}`, () => getTargetSwilibAnalysis(target));
+	});
+
+	// Analyze uploaded swilib
+	fastify.post<AnalyzeSwilibRoute>('/analyze/:target', async (request) => {
+		const target = request.params.target;
+		return getTargetSwilibAnalysis(target, { code: request.body.code });
 	});
 
 	// Download as .blib, .vkp, .txt or .idc

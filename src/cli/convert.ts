@@ -12,7 +12,7 @@ interface Options extends CLIBaseOptions {
 }
 
 export default createAppCommand<Options>(async ({ target, file, format, output }) => {
-	const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target, file);
+	const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target, { file });
 
 	const generate = () => {
 		switch (format) {

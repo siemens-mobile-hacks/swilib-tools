@@ -9,7 +9,7 @@ import {
 	SwiPlatform,
 	SwiType
 } from "@sie-js/swilib";
-import { loadLibraryForAll, loadLibraryForTarget } from "#src/utils/swilib.js";
+import { loadLibraryForAll, loadLibraryForTarget, SwilibInputSource } from "#src/utils/swilib.js";
 import { getSwilibPatch, SDK_DIR } from "#src/utils/sdk.js";
 
 export enum SwiFlags {
@@ -118,8 +118,8 @@ export function getSwilibDevices(): SwilibDevice[] {
 	});
 }
 
-export async function getTargetSwilibAnalysis(target: string): Promise<TargetSwilibAnalysis> {
-	const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target);
+export async function getTargetSwilibAnalysis(target: string, input: SwilibInputSource = {}): Promise<TargetSwilibAnalysis> {
+	const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target, input);
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 
 	const entries: TargetSwilibAnalysisEntry[] = [];

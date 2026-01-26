@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
+import fastifyCors from '@fastify/cors';
+import fastifyMultipart from "@fastify/multipart";
 import { CLIBaseOptions } from "#src/cli.js";
 import { createAppCommand } from "#src/utils/command.js";
 import { swilibRoutes } from "#src/cli/routes/swilib.js";
@@ -14,7 +15,8 @@ export default createAppCommand<Options>(async (options) => {
 	const fastify = Fastify({
 		logger: false
 	});
-	await fastify.register(cors);
+	await fastify.register(fastifyCors);
+	await fastify.register(fastifyMultipart);
 	fastify.register(swilibRoutes, { prefix: '/api/swilib' });
 	fastify.register(disassemblerRoutes, { prefix: '/api/disassembler' });
 	fastify.listen({ port: parseInt(options.port) }, function (err, address) {
