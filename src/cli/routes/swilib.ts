@@ -1,8 +1,19 @@
 import { FastifyInstance } from "fastify";
-import { getGhidraSymbols, getIdaSymbols, getSwiBlib, serializeSwilib } from "@sie-js/swilib";
+import {
+	getGhidraSymbols,
+	getIdaSymbols,
+	getSwiBlib,
+	isValidSwilibPlatform,
+	loadSwilibConfig,
+	parseSwilibPatch,
+	serializeSwilib,
+	Swilib
+} from "@sie-js/swilib";
 import { getSwilibDevices, getSwilibSummaryAnalysis, getTargetSwilibAnalysis } from "#src/analyze.js";
 import { loadLibraryForTarget } from "#src/utils/swilib.js";
 import { cached } from "#src/utils/cache.js";
+import { SDK_DIR } from "#src/utils/sdk.js";
+import { getSwilibDiff } from "#src/merge.js";
 
 interface DownloadRoute {
 	Params: {
@@ -14,9 +25,21 @@ interface DownloadRoute {
 interface AnalyzeSwilibRoute {
 	Params: {
 		target: string;
-	},
+	}
+}
+
+interface AnalyzeUploadedSwilibRoute {
 	Body: {
+		platform?: string;
 		code?: string;
+	}
+}
+
+interface DiffSwilibRoute {
+	Body: {
+		platform?: string;
+		left?: string;
+		right?: string;
 	}
 }
 
@@ -38,9 +61,26 @@ export function swilibRoutes(fastify: FastifyInstance) {
 	});
 
 	// Analyze uploaded swilib
-	fastify.post<AnalyzeSwilibRoute>('/analyze/:target', async (request) => {
-		const target = request.params.target;
-		return getTargetSwilibAnalysis(target, { code: request.body.code });
+	fastify.post<AnalyzeUploadedSwilibRoute>('/analyze', async (request) => {
+		const platform = request.body.platform;
+		if (!platform || !isValidSwilibPlatform(platform))
+			throw new Error(`Invalid platform: ${platform}`);
+		return getTargetSwilibAnalysis(platform, { code: request.body.code });
+	});
+
+	// Diff two uploaded swilib's
+	fastify.post<DiffSwilibRoute>('/diff', async (request) => {
+		const swilibConfig = loadSwilibConfig(SDK_DIR);
+		const platform = request.body.platform;
+		if (!platform || !isValidSwilibPlatform(platform))
+			throw new Error(`Invalid platform: ${platform}`);
+		const swilibs: Swilib[] = [];
+		for (const code of [request.body.left, request.body.right]) {
+			if (!code)
+				throw new Error('Missing swilib code');
+			swilibs.push(parseSwilibPatch(swilibConfig, code, { platform }));
+		}
+		return getSwilibDiff(platform, swilibs);
 	});
 
 	// Download as .blib, .vkp, .txt or .idc

@@ -16,6 +16,7 @@ import {
 	SwilibAnalysisResult
 } from "@sie-js/swilib";
 import { SDK_DIR } from "#src/utils/sdk.js";
+import { getSwilibDiff, SwilibDiffAction, SwilibEntryDiffSide } from "#src/merge.js";
 
 interface Options extends CLIBaseOptions {
 	target: string;
@@ -29,16 +30,10 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 	const platform = getSwilibPlatform(swilibConfig, target);
 	const sdklib = await parseLibraryFromSDK(SDK_DIR, platform);
 
-	let maxFunctionId = 0;
 	const swilibs: Swilib[] = [];
-	const analysis: SwilibAnalysisResult[] = [];
-	for (const file of [source, destination]) {
-		const swilib = parseSwilibPatch(swilibConfig, fs.readFileSync(file), { target });
-		swilib.entries[sdklib.entries.length - 1] = swilib.entries[sdklib.entries.length - 1] || undefined;
-		swilibs.push(swilib);
-		analysis.push(analyzeSwilib(swilibConfig, swilib, sdklib));
-		maxFunctionId = Math.max(swilib.entries.length, maxFunctionId);
-	}
+	for (const file of [source, destination])
+		swilibs.push(parseSwilibPatch(swilibConfig, fs.readFileSync(file), { target }));
+	const maxFunctionId = Math.max(...swilibs.map(swilib => swilib.entries.length));
 
 	if (swilibs[0].offset != swilibs[1].offset) {
 		console.error(chalk.red(`The swilibs have different base offsets; merging is not possible.`));
@@ -46,65 +41,47 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 	}
 
 	const answers = new Map<number, number>();
-	for (let id = 0; id < maxFunctionId; id++) {
-		const swiEntryA = swilibs[0].entries[id];
-		const swiEntryB = swilibs[1].entries[id];
-		const sdkEntry = sdklib.entries[id];
-
-		if (!swiEntryA && !swiEntryB)
-			continue;
+	const diff = await getSwilibDiff(platform, swilibs);
+	for (const entry of diff) {
+		const formatValue = (side?: SwilibEntryDiffSide) => {
+			if (!side)
+				return chalk.grey('/* none */');
+			const valueHex = sprintf("%08X", side.value);
+			return side.error ? chalk.red(valueHex) : valueHex;
+		};
 
 		const table = [
 			['ID', 'Name', 'Swilib A', 'Swilib B'],
 			[
-				formatId(id),
-				sdkEntry ? formatFuncName(sdkEntry.name) : chalk.grey('/* none */'),
-				swiEntryA?.value != null ? sprintf("%08X", swiEntryA.value) : chalk.gray('/* none */'),
-				swiEntryB?.value != null ? sprintf("%08X", swiEntryB.value) : chalk.gray('/* none */'),
+				formatId(entry.id),
+				entry.name ? formatFuncName(entry.name) : chalk.grey('/* none */'),
+				formatValue(entry.left),
+				formatValue(entry.right),
 			]
 		];
 
-		const isEntryValid = (index: number): boolean => {
-			if (analysis[index].errors[id])
-				return false;
-			if (swilibs[index].entries[id]?.value == null)
-				return false;
-			return true;
-		};
-
-		let needMerge = false;
-		if (analysis[0].errors[id] || analysis[1].errors[id]) {
-			if (analysis[0].errors[id])
-				table[1][2] = chalk.red(table[1][2]);
-			if (analysis[1].errors[id])
-				table[1][3] = chalk.red(table[1][3]);
-
+		if (entry.action == SwilibDiffAction.LEFT && !entry.right) {
+			answers.set(entry.id, 0);
+		} else if (entry.action == SwilibDiffAction.RIGHT && !entry.left) {
+			answers.set(entry.id, 1);
+		} else {
 			console.log(asciiTable(table).trim());
 
-			if (analysis[0].errors[id])
-				console.log('Swilib A error:', chalk.red(analysis[0].errors[id]));
-			if (analysis[1].errors[id])
-				console.log('Swilib B error:', chalk.red(analysis[1].errors[id]));
-			needMerge = true;
-		} else if ((swiEntryA && !swiEntryB) || (!swiEntryA && swiEntryB)) {
-			needMerge = false;
-			answers.set(id, swiEntryA ? 0 : 1);
-		} else if (swiEntryA && swiEntryB && swiEntryA.value != swiEntryB.value) {
-			console.log(asciiTable(table).trim());
-			needMerge = true;
-		}
+			if (entry.left?.error)
+				console.log('Swilib A error:', chalk.red(entry.left?.error));
+			if (entry.right?.error)
+				console.log('Swilib B error:', chalk.red(entry.right?.error));
 
-		if (needMerge) {
 			const choices: Array<{ name: string, value: number, disabled?: boolean }> = [];
-			if (isEntryValid(0) && swiEntryA) {
-				choices.push({ name: 'Swilib A: ' + sprintf("%08X", swiEntryA.value), value: 0 });
+			if ([SwilibDiffAction.LEFT, SwilibDiffAction.ASK].includes(entry.action)) {
+				choices.push({ name: 'Swilib A: ' + sprintf("%08X", entry.left!.value), value: 0 });
 			} else {
 				choices.push({ name: 'Swilib A: not available', value: 0, disabled: true });
 			}
-			if (isEntryValid(1) && swiEntryB) {
-				choices.push({ name: 'Swilib B: ' + sprintf("%08X", swiEntryB.value), value: 1 });
+			if ([SwilibDiffAction.RIGHT, SwilibDiffAction.ASK].includes(entry.action)) {
+				choices.push({ name: 'Swilib B: ' + sprintf("%08X", entry.right!.value), value: 1 });
 			} else {
-				choices.push({ name: 'Swilib B: not available', value: 0, disabled: true });
+				choices.push({ name: 'Swilib B: not available', value: 1, disabled: true });
 			}
 			choices.push({ name: 'Remove from swilib', value: -1 });
 
@@ -112,7 +89,7 @@ export default createAppCommand<Options>(async ({ source, destination, target, o
 				message: 'Choose the correct variant:',
 				choices
 			});
-			answers.set(id, answer);
+			answers.set(entry.id, answer);
 
 			console.log();
 			console.log();
