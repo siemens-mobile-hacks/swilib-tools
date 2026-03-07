@@ -18,7 +18,10 @@ import { getSwilibDiff } from "#src/merge.js";
 interface DownloadRoute {
 	Params: {
 		target: string;
-		type: string;
+		format: string;
+	}
+	Body: {
+		code?: string;
 	}
 }
 
@@ -84,35 +87,39 @@ export function swilibRoutes(fastify: FastifyInstance) {
 	});
 
 	// Download as .blib, .vkp, .txt or .idc
-	fastify.get<DownloadRoute>('/download/:target/:filename.:type', async (request, reply) => {
-		const target = request.params.target;
-		const type = request.params.type;
-		const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target);
-
-		switch (type) {
+	const getDownloadPayload = async (format: string, target: string, code?: string) => {
+		const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target, { code });
+		switch (format) {
 			case 'blib':
-				reply.header('Content-Disposition', 'attachment')
-					.send(getSwiBlib(swilib));
-				break;
+				return getSwiBlib(swilib);
 
 			case 'vkp':
-				reply.header('Content-Disposition', 'attachment')
-					.send(serializeSwilib(swilibConfig, swilib, sdklib));
-				break;
+				return serializeSwilib(swilibConfig, swilib, sdklib);
 
 			case 'idc':
-				reply.header('Content-Disposition', 'attachment')
-					.send(getIdaSymbols(swilibConfig, swilib, sdklib));
-				break;
+				return getIdaSymbols(swilibConfig, swilib, sdklib);
 
 			case 'txt':
-				reply.header('Content-Disposition', 'attachment')
-					.send(getGhidraSymbols(swilibConfig, swilib, sdklib));
-				break;
-
-			default:
-				reply.code(404);
-				break;
+				return getGhidraSymbols(swilibConfig, swilib, sdklib);
 		}
+		return undefined;
+	}
+
+	fastify.get<DownloadRoute>('/download/:target/:filename.:format', async (request, reply) => {
+		const payload = await getDownloadPayload(request.params.format, request.params.target);
+		if (!payload) {
+			reply.code(404);
+			return;
+		}
+		reply.header('Content-Disposition', 'attachment').send(payload);
+	});
+
+	fastify.post<DownloadRoute>('/download/:target/:filename.:format', async (request, reply) => {
+		const payload = await getDownloadPayload(request.params.format, request.params.target, request.body.code);
+		if (!payload) {
+			reply.code(404);
+			return;
+		}
+		reply.header('Content-Disposition', 'attachment').send(payload);
 	});
 }
