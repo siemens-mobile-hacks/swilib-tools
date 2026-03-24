@@ -5,6 +5,7 @@ import {
 	getSwiBlib,
 	isValidSwilibPlatform,
 	loadSwilibConfig,
+	parseLibraryFromSDK,
 	parseSwilibPatch,
 	serializeSwilib,
 	Swilib
@@ -13,7 +14,7 @@ import { getSwilibDevices, getSwilibSummaryAnalysis, getTargetSwilibAnalysis } f
 import { loadLibraryForTarget } from "#src/utils/swilib.js";
 import { cached } from "#src/utils/cache.js";
 import { SDK_DIR } from "#src/utils/sdk.js";
-import { getSwilibDiff } from "#src/merge.js";
+import { getSwilibDiff, SwilibDiffAction } from "#src/merge.js";
 
 interface DownloadRoute {
 	Params: {
@@ -43,6 +44,15 @@ interface DiffSwilibRoute {
 		platform?: string;
 		left?: string;
 		right?: string;
+	}
+}
+
+interface DiffSwilibResultRoute {
+	Body: {
+		platform?: string;
+		left?: string;
+		right?: string;
+		answers: Record<number, number>;
 	}
 }
 
@@ -84,6 +94,58 @@ export function swilibRoutes(fastify: FastifyInstance) {
 			swilibs.push(parseSwilibPatch(swilibConfig, code, { platform }));
 		}
 		return getSwilibDiff(platform, swilibs);
+	});
+
+	// Diff two uploaded swilib's (result)
+	fastify.post<DiffSwilibResultRoute>('/diff/result', async (request) => {
+		const swilibConfig = loadSwilibConfig(SDK_DIR);
+		const platform = request.body.platform;
+		if (!platform || !isValidSwilibPlatform(platform))
+			throw new Error(`Invalid platform: ${platform}`);
+
+		const answers = new Map<number, SwilibDiffAction>(
+			Object.entries(request.body.answers)
+				.map(([id, action]) => [+id, +action])
+		);
+
+		const sdklib = await parseLibraryFromSDK(SDK_DIR, platform);
+		const swilibs: Swilib[] = [];
+		for (const code of [request.body.left, request.body.right]) {
+			if (!code)
+				throw new Error('Missing swilib code');
+			swilibs.push(parseSwilibPatch(swilibConfig, code, { platform }));
+		}
+		const maxFunctionId = Math.max(...swilibs.map(swilib => swilib.entries.length));
+
+		const newSwilib: Swilib = {
+			offset: swilibs[1].offset,
+			entries: [],
+			platform,
+		};
+		for (let id = 0; id < maxFunctionId; id++) {
+			const answer = answers.get(id);
+			if (answer == null) {
+				if (swilibs[1].entries[id]) {
+					newSwilib.entries[id] = structuredClone(swilibs[1].entries[id]);
+					delete newSwilib.entries[id]!.comment;
+				}
+				continue;
+			}
+
+			switch (answer) {
+				case SwilibDiffAction.LEFT:
+					newSwilib.entries[id] = structuredClone(swilibs[0].entries[id]);
+					delete newSwilib.entries[id]!.comment;
+					break;
+
+				case SwilibDiffAction.RIGHT:
+					newSwilib.entries[id] = structuredClone(swilibs[1].entries[id]);
+					delete newSwilib.entries[id]!.comment;
+					break;
+			}
+		}
+
+		return serializeSwilib(swilibConfig, newSwilib, sdklib);
 	});
 
 	// Download as .blib, .vkp, .txt or .idc
