@@ -6,6 +6,7 @@ import cmdCheckSwilib from "#src/cli/checkSwilib.js";
 import cmdMergeSwilibs from "#src/cli/mergeSwilib.js";
 import cmdConvert from "#src/cli/convert.js";
 import cmdGenAsmSymbols from "#src/cli/genAsmSymbols.js";
+import cmdGenDataTypes from "#src/cli/genDataTypes.js";
 import cmdGenSimulatorApi from "#src/cli/genSimulatorApi.js";
 import cmdUpdateRepos from "#src/cli/updateRepos.js";
 import { findDefaultDevRoot, setDevRoot } from "#src/utils/sdk.js";
@@ -64,6 +65,13 @@ program
 	.option('-F, --format [FORMAT]', 'Output format (valid formats: txt, idc, blib, vkp)', 'txt')
 	.option('-o, --output [DIR]', 'Output directory')
 	.action(cmdConvert);
+
+program
+	.command('gen-data-types')
+	.description('Generate data types for Ghidra SRE')
+	.requiredOption('-t, --target <TARGET>', 'SDK platform (SG, X75, NSG, ELKA)')
+	.option('-o, --output [FILE]', 'Output file (.h)')
+	.action(cmdGenDataTypes);
 
 program
 	.command('gen-asm-symbols')

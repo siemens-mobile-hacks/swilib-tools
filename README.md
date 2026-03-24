@@ -64,7 +64,9 @@ Commands:
   check [options]              Check swilib.vkp for errors
   merge [options]              Merge two swilib.vkp files (source.vkp → destination.vkp)
   convert [options]            Convert swilib to other formats
+  gen-data-types [options]     Generate data types for Ghidra SRE
   gen-asm-symbols [options]    Generate assembler symbols for the SDK
-  gen-simulator-api [options]  Generate API stubs for the elf emulator
+  gen-simulator-api [options]  Generate API stubs for the ELF emulator
+  update-db                    Pull repositories in development root
   help [command]               display help for command
 ```
