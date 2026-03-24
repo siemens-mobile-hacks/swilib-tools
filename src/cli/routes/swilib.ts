@@ -50,9 +50,10 @@ interface DiffSwilibRoute {
 interface DiffSwilibResultRoute {
 	Body: {
 		platform?: string;
+		target?: string;
 		left?: string;
 		right?: string;
-		answers: Record<number, number>;
+		answers?: Record<number, number>;
 	}
 }
 
@@ -103,6 +104,13 @@ export function swilibRoutes(fastify: FastifyInstance) {
 		if (!platform || !isValidSwilibPlatform(platform))
 			throw new Error(`Invalid platform: ${platform}`);
 
+		const target = request.body.target;
+		if (!target)
+			throw new Error('Missing target');
+
+		if (!request.body.answers)
+			throw new Error('Missing answers');
+
 		const answers = new Map<number, SwilibDiffAction>(
 			Object.entries(request.body.answers)
 				.map(([id, action]) => [+id, +action])
@@ -121,6 +129,7 @@ export function swilibRoutes(fastify: FastifyInstance) {
 			offset: swilibs[1].offset,
 			entries: [],
 			platform,
+			target,
 		};
 		for (let id = 0; id < maxFunctionId; id++) {
 			const answer = answers.get(id);
