@@ -5,6 +5,8 @@ import { CLIBaseOptions } from "#src/cli.js";
 import { createAppCommand } from "#src/utils/command.js";
 import { analyzeSwilib } from "@sie-js/swilib";
 import { loadLibraryForTarget } from "#src/utils/swilib.js";
+import { applySwilibPatternAudit, auditSwilibPatterns } from "#src/patternAudit.js";
+import { loadSwilibPatternCache } from "#src/patternCache.js";
 
 const tableConfig = {
 	singleLine: true,
@@ -29,6 +31,16 @@ export default createAppCommand<Options>(async ({ target, file }) => {
 	console.log();
 
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
+	const patternCache = await loadSwilibPatternCache(target, ptrlib);
+	if (patternCache) {
+		const patternAudit = auditSwilibPatterns(swilib, sdklib, ptrlib, patternCache);
+		applySwilibPatternAudit(analysis, patternAudit);
+		console.log(`Checked ${patternAudit.checked} cached patterns (${patternAudit.matched} matched).`);
+		console.log();
+	} else {
+		console.log(chalk.yellow(`Pattern cache not found; pattern checks skipped.`));
+		console.log();
+	}
 	if (analysis.missing.length > 0) {
 		const errorsTable = [
 			[chalk.bold('ID'), chalk.bold('Name'), chalk.bold(`Notes`)]

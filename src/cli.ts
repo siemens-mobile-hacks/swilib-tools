@@ -87,7 +87,7 @@ program
 
 program
 	.command('update-db')
-	.description('Pull repositories in development root')
+	.description('Pull repositories and update pattern caches')
 	.action(cmdUpdateRepos);
 
 program.showSuggestionAfterError(true);

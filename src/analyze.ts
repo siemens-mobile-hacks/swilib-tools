@@ -11,6 +11,8 @@ import {
 } from "@sie-js/swilib";
 import { loadLibraryForAll, loadLibraryForTarget, SwilibInputSource } from "#src/utils/swilib.js";
 import { getSwilibPatch, SDK_DIR } from "#src/utils/sdk.js";
+import { applySwilibPatternAudit, auditSwilibPatterns, SwilibPatternAudit } from "#src/patternAudit.js";
+import { loadSwilibPatternCache } from "#src/patternCache.js";
 
 export enum SwiFlags {
 	NONE		= 0,
@@ -69,6 +71,7 @@ interface TargetSwilibAnalysis {
 	offset: number;
 	patchId: number;
 	statistic: SwilibAnalysisResult['stat'];
+	patternAudit?: Omit<SwilibPatternAudit, 'errors'>;
 }
 
 export async function getPatternsSummaryAnalysis(): Promise<PatternEntry[]> {
@@ -119,8 +122,14 @@ export function getSwilibDevices(): SwilibDevice[] {
 }
 
 export async function getTargetSwilibAnalysis(target: string, input: SwilibInputSource = {}): Promise<TargetSwilibAnalysis> {
-	const { swilibConfig, sdklib, swilib } = await loadLibraryForTarget(target, input);
+	const { swilibConfig, ptrlib, sdklib, swilib } = await loadLibraryForTarget(target, input);
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
+	let patternAudit: SwilibPatternAudit | undefined;
+	const patternCache = await loadSwilibPatternCache(target, ptrlib);
+	if (patternCache) {
+		patternAudit = auditSwilibPatterns(swilib, sdklib, ptrlib, patternCache);
+		applySwilibPatternAudit(analysis, patternAudit);
+	}
 
 	const entries: TargetSwilibAnalysisEntry[] = [];
 	for (let id = 0; id < swilib.entries.length; id++) {
@@ -141,6 +150,10 @@ export async function getTargetSwilibAnalysis(target: string, input: SwilibInput
 		offset: swilib.offset,
 		patchId: swilibConfig.patches.get(target) ?? 0,
 		statistic: analysis.stat,
+		patternAudit: patternAudit && {
+			checked: patternAudit.checked,
+			matched: patternAudit.matched,
+		},
 	};
 }
 
@@ -162,7 +175,14 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 		const sdklib = platformToLib[platform];
 
 		const swilib = parseSwilibPatch(swilibConfig, fs.readFileSync(patchFile), { target });
-		const { missing, errors } = analyzeSwilib(swilibConfig, swilib, sdklib);
+		const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
+		const patterns = platformToPatterns[platform];
+		const patternCache = await loadSwilibPatternCache(target, patterns);
+		if (patternCache) {
+			const patternAudit = auditSwilibPatterns(swilib, sdklib, patterns, patternCache);
+			applySwilibPatternAudit(analysis, patternAudit);
+		}
+		const { missing, errors } = analysis;
 
 		let goodFunctionsCnt = 0;
 		for (let id = 0; id < sdklib.entries.length; id++) {

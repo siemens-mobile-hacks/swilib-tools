@@ -30,6 +30,7 @@ Supported on all major operating systems: Linux, macOS, and Windows.
 These external tools must be available in your PATH:
 - arm-none-eabi-gcc
 - git
+- ptr89
 
 # Development root
 This tool requires some external repositories to work properly.
@@ -44,6 +45,7 @@ mkdir -p ~/dev/sie
 cd ~/dev/sie
 git clone https://github.com/siemens-mobile-hacks/sdk --depth 1
 git clone https://github.com/siemens-mobile-hacks/patches --depth 1
+git clone https://git.siepatch.dev/siepatch/stripped-fullflashes.git
 ```
 
 Also, remember to pull the latest changes from these repositories regularly.
@@ -67,7 +69,7 @@ Commands:
   gen-data-types [options]     Generate data types for Ghidra SRE
   gen-asm-symbols [options]    Generate assembler symbols for the SDK
   gen-simulator-api [options]  Generate API stubs for the ELF emulator
-  update-db                    Pull repositories in development root
+  update-db                    Pull repositories and update pattern caches
   help [command]               display help for command
 ```
 

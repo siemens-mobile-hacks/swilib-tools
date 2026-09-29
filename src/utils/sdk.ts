@@ -8,6 +8,8 @@ import { simpleGit } from "simple-git";
 
 export let PATCHES_DIR: string;
 export let SDK_DIR: string;
+export let FULLFLASHES_DIR: string;
+export let CACHE_DIR: string;
 
 const possibleDirectories = [
 	'dev/sie',
@@ -17,6 +19,8 @@ const possibleDirectories = [
 export function setDevRoot(rootPath: string) {
 	PATCHES_DIR = `${rootPath}/patches`;
 	SDK_DIR = `${rootPath}/sdk`;
+	FULLFLASHES_DIR = `${rootPath}/stripped-fullflashes`;
+	CACHE_DIR = `${rootPath}/.cache/swilib-tools`;
 }
 
 export async function getDevRootRevision() {
@@ -72,6 +76,16 @@ export function getSwilibPatch(swilibConfig: SwilibConfig, target: string) {
 	if (!swilibConfig.patches.has(target))
 		return undefined;
 	return getPatchByID(swilibConfig.patches.get(target)!, target);
+}
+
+export function getFullflash(model: string, sw: number): string | undefined {
+	const file = `${FULLFLASHES_DIR}/${model}v${sw}.bin`;
+	return fs.existsSync(file) ? file : undefined;
+}
+
+export function parseSwilibTarget(target: string): { model: string; sw: number } | undefined {
+	const match = target.match(/^(.+)v(\d+)$/i);
+	return match ? { model: match[1], sw: Number(match[2]) } : undefined;
 }
 
 export function getPatchByID(id: number, target?: string): string | undefined {
