@@ -11,7 +11,7 @@ import {
 	PATCHES_DIR,
 	SDK_DIR
 } from "#src/utils/sdk.js";
-import { persistSwilibPatternCache } from "#src/patternCache.js";
+import { loadSwilibPatternCache } from "#src/patternCache.js";
 
 export default createAppCommand<CLIBaseOptions>(async () => {
 	for (const repo of [SDK_DIR, PATCHES_DIR, FULLFLASHES_DIR]) {
@@ -36,7 +36,7 @@ export default createAppCommand<CLIBaseOptions>(async () => {
 		const platform = getSwilibPlatform(swilibConfig, target);
 		const patterns = parsePatterns(patternSource, platform);
 		console.log(`${target}: updating pattern cache (${platform})...`);
-		const cache = await persistSwilibPatternCache(target, patterns, fullflash);
+		const cache = await loadSwilibPatternCache(target, patterns, fullflash);
 		console.log(chalk.green(`${target}: ${cache.filter(Boolean).length} patterns cached.`));
 	}
 });

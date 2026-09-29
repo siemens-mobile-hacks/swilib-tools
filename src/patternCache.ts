@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { SwilibPattern } from "@sie-js/swilib";
 import { findPattern } from "#src/utils/ptr89.js";
-import { getPersistCached, persistCached } from "#src/utils/cache.js";
+import { persistCached } from "#src/utils/cache.js";
+import { FULLFLASHES_DIR, getFullflash, parseSwilibTarget } from "#src/utils/sdk.js";
 
 const CACHE_VERSION = 3;
 
@@ -15,16 +16,14 @@ export type SwilibPatternCache = Array<SwilibPatternCacheEntry | null | undefine
 export function loadSwilibPatternCache(
 	target: string,
 	patterns: Array<SwilibPattern | undefined>,
-): Promise<SwilibPatternCache | undefined> {
-	return getPersistCached(`${target}.patterns`, getRevision(patterns));
-}
-
-export function persistSwilibPatternCache(
-	target: string,
-	patterns: Array<SwilibPattern | undefined>,
-	fullflash: string,
+	fullflash?: string,
 ): Promise<SwilibPatternCache> {
 	return persistCached(`${target}.patterns`, getRevision(patterns), async () => {
+		const parsedTarget = parseSwilibTarget(target);
+		const source = fullflash ?? (parsedTarget && getFullflash(parsedTarget.model, parsedTarget.sw));
+		if (!source)
+			throw new Error(`Fullflash not found. Clone https://git.siepatch.dev/siepatch/stripped-fullflashes.git to ${FULLFLASHES_DIR}.`);
+
 		const cache: SwilibPatternCache = [];
 		const idsByPattern = new Map<string, number[]>();
 		for (let id = 0; id < patterns.length; id++) {
@@ -37,7 +36,7 @@ export function persistSwilibPatternCache(
 		await mapConcurrent([...idsByPattern], async ([pattern, ids]) => {
 			let entry: SwilibPatternCacheEntry;
 			try {
-				const { address } = await findPattern(fullflash, pattern);
+				const { address } = await findPattern(source, pattern);
 				entry = { address };
 			} catch (error) {
 				if (!(error instanceof Error))

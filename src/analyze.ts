@@ -71,7 +71,7 @@ interface TargetSwilibAnalysis {
 	offset: number;
 	patchId: number;
 	statistic: SwilibAnalysisResult['stat'];
-	patternAudit?: Omit<SwilibPatternAudit, 'errors'>;
+	patternAudit: Omit<SwilibPatternAudit, 'errors'>;
 }
 
 export async function getPatternsSummaryAnalysis(): Promise<PatternEntry[]> {
@@ -124,12 +124,9 @@ export function getSwilibDevices(): SwilibDevice[] {
 export async function getTargetSwilibAnalysis(target: string, input: SwilibInputSource = {}): Promise<TargetSwilibAnalysis> {
 	const { swilibConfig, ptrlib, sdklib, swilib } = await loadLibraryForTarget(target, input);
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
-	let patternAudit: SwilibPatternAudit | undefined;
 	const patternCache = await loadSwilibPatternCache(target, ptrlib);
-	if (patternCache) {
-		patternAudit = auditSwilibPatterns(swilib, sdklib, ptrlib, patternCache);
-		applySwilibPatternAudit(analysis, patternAudit);
-	}
+	const patternAudit = auditSwilibPatterns(swilib, sdklib, ptrlib, patternCache);
+	applySwilibPatternAudit(analysis, patternAudit);
 
 	const entries: TargetSwilibAnalysisEntry[] = [];
 	for (let id = 0; id < swilib.entries.length; id++) {
@@ -150,7 +147,7 @@ export async function getTargetSwilibAnalysis(target: string, input: SwilibInput
 		offset: swilib.offset,
 		patchId: swilibConfig.patches.get(target) ?? 0,
 		statistic: analysis.stat,
-		patternAudit: patternAudit && {
+		patternAudit: {
 			checked: patternAudit.checked,
 			matched: patternAudit.matched,
 		},
@@ -178,10 +175,8 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 		const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 		const patterns = platformToPatterns[platform];
 		const patternCache = await loadSwilibPatternCache(target, patterns);
-		if (patternCache) {
-			const patternAudit = auditSwilibPatterns(swilib, sdklib, patterns, patternCache);
-			applySwilibPatternAudit(analysis, patternAudit);
-		}
+		const patternAudit = auditSwilibPatterns(swilib, sdklib, patterns, patternCache);
+		applySwilibPatternAudit(analysis, patternAudit);
 		const { missing, errors } = analysis;
 
 		let goodFunctionsCnt = 0;

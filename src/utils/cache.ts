@@ -29,11 +29,6 @@ export async function persistCached<T>(key: string, revision: string, fn: () => 
 	return value;
 }
 
-export async function getPersistCached<T>(key: string, revision: string): Promise<T | undefined> {
-	const entry = await readPersistCached<T>(key);
-	return entry?.revision === revision ? entry.value : undefined;
-}
-
 function getPersistCacheFile(key: string): string {
 	if (!/^[A-Za-z0-9._-]+$/.test(key))
 		throw new Error(`Invalid persistent cache key: ${key}`);
