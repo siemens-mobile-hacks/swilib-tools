@@ -36,7 +36,7 @@ export interface SummarySwilibAnalysisEntry {
 	file: string;
 	type: SwiType;
 	coverage: Record<string, number>;
-	patterns: Record<string, string>;
+	patterns: Record<string, string[]>;
 	values: Record<string, number>;
 	targets: string[];
 }
@@ -264,7 +264,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 		}
 
 		const entryCoverage: Record<string, number> = {};
-		const patterns: Record<string, string> = {};
+		const patterns: Record<string, string[]> = {};
 		for (const platform of getSwilibPlatforms()) {
 			const ptrlib = platformToPatterns[platform];
 			const pattern = ptrlib[id]?.pattern;
@@ -277,7 +277,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 				const coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
 				entryCoverage[platform] = +coveragePct.toFixed(1);
 				if (pattern)
-					patterns[platform] = pattern;
+					patterns[platform] = Array.isArray(pattern) ? pattern : [pattern];
 			}
 		}
 

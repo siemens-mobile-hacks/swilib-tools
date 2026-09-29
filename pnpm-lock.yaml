@@ -24,8 +24,8 @@ importers:
         specifier: ^9.0.1
         version: 9.0.1
       '@sie-js/swilib':
-        specifier: ^3.0.4
-        version: 3.0.4
+        specifier: ^3.1.0
+        version: 3.1.0
       '@sie-js/vkp':
         specifier: ^2.0.2
         version: 2.0.2
@@ -258,8 +258,8 @@ packages:
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
-  '@sie-js/swilib@3.0.4':
-    resolution: {integrity: sha512-e0RIyfHTrpT/kzP/WOzq2zgsMOWA6nJWz7oGpmW2CWh37xrdNYP6o16l1dhzj/EpwbbLq+I3t5hZtUxip/P3nw==}
+  '@sie-js/swilib@3.1.0':
+    resolution: {integrity: sha512-GqF7ZccJ5wzdZFVP1aBIR/JxSpYPuQFZ2NLiSY6NeIh32nB+d/9cy3ICs4273YF2o//n8PT+CMZEakNqkb6YRw==}
 
   '@sie-js/vkp@2.0.2':
     resolution: {integrity: sha512-XCClQmH3xY/GuJdPuaLnMrGIH3igBu5T3NsCoOUm3Pcz8u5StiOyBkZsRNUmy33b4ODze6t4mIA99EVjBoh7AQ==}
@@ -934,7 +934,7 @@ snapshots:
 
   '@pinojs/redact@0.4.0': {}
 
-  '@sie-js/swilib@3.0.4':
+  '@sie-js/swilib@3.1.0':
     dependencies:
       '@npmcli/promise-spawn': 9.0.1
       '@sie-js/vkp': 2.0.2

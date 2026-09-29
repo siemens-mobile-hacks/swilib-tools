@@ -25,19 +25,29 @@ export function loadSwilibPatternCache(
 			throw new Error(`Fullflash not found. Clone https://git.siepatch.dev/siepatch/stripped-fullflashes.git to ${FULLFLASHES_DIR}.`);
 
 		const cache: SwilibPatternCache = [];
-		const idsByPattern = new Map<string, number[]>();
+		const groups = new Map<string, { candidates: string[]; ids: number[] }>();
 		for (let id = 0; id < patterns.length; id++) {
 			const pattern = patterns[id]?.pattern;
 			if (!pattern)
 				continue;
-			idsByPattern.set(pattern, [...idsByPattern.get(pattern) ?? [], id]);
+			const candidates = typeof pattern === 'string' ? [pattern] : pattern;
+			const key = JSON.stringify(candidates);
+			const group = groups.get(key) ?? { candidates, ids: [] };
+			group.ids.push(id);
+			groups.set(key, group);
 		}
 
-		await mapConcurrent([...idsByPattern], async ([pattern, ids]) => {
+		await mapConcurrent([...groups.values()], async ({ candidates, ids }) => {
 			let entry: SwilibPatternCacheEntry;
 			try {
-				const { address } = await findPattern(source, pattern);
-				entry = { address };
+				entry = {};
+				for (const pattern of candidates) {
+					const { address } = await findPattern(source, pattern);
+					if (address !== undefined) {
+						entry = { address };
+						break;
+					}
+				}
 			} catch (error) {
 				if (!(error instanceof Error))
 					throw error;
