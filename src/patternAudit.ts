@@ -71,7 +71,7 @@ function addressesMatch(expected: number, actual: number, isFunction: boolean): 
 function formatMismatchError(address?: number): string {
 	if (address === undefined)
 		return `Pattern not found.`;
-	return `Pattern points to ${formatAddress(address)}.`;
+	return `Pattern found at ${formatAddress(address)}.`;
 }
 
 function formatAddress(address: number): string {
