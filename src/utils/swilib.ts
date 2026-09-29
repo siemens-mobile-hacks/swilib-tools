@@ -20,7 +20,7 @@ export interface SwilibInputSource {
 export async function loadLibraryForTarget(target: string, { file, code }: SwilibInputSource = {}){
 	const swilibConfig = loadSwilibConfig(SDK_DIR);
 	const platform = getSwilibPlatform(swilibConfig, target);
-	const ptrlib = parsePatterns(fs.readFileSync(`${SDK_DIR}/swilib/patterns/${platform}.ini`));
+	const ptrlib = parsePatterns(fs.readFileSync(`${SDK_DIR}/swilib/patterns.toml`), platform);
 	const sdklib = await parseLibraryFromSDK(SDK_DIR, platform);
 
 	if (code == null) {
@@ -48,9 +48,10 @@ export async function loadLibraryForAll(swilibConfig: SwilibConfig) {
 	let maxFunctionId = 0;
 	const platformToLib = {} as Record<SwiPlatform, Sdklib>;
 	const platformToPatterns = {} as Record<SwiPlatform, Array<SwilibPattern | undefined>>;
+	const patterns = await fs.promises.readFile(`${SDK_DIR}/swilib/patterns.toml`);
 	for (const platform of getSwilibPlatforms()) {
 		platformToLib[platform] = await parseLibraryFromSDK(SDK_DIR, platform);
-		platformToPatterns[platform] = parsePatterns(await fs.promises.readFile(`${SDK_DIR}/swilib/patterns/${platform}.ini`));
+		platformToPatterns[platform] = parsePatterns(patterns, platform);
 		maxFunctionId = Math.max(maxFunctionId, platformToLib[platform].entries.length);
 	}
 	maxFunctionId = Math.max(maxFunctionId, Math.max(...swilibConfig.functions.reserved) + 1);
