@@ -1,5 +1,5 @@
 import { Sdklib, Swilib, SwilibAnalysisResult, SwilibPattern, SwiType } from "@sie-js/swilib";
-import { getPatternsHash, SwilibPatternCache } from "#src/patternCache.js";
+import { SwilibPatternCache } from "#src/patternCache.js";
 
 export interface SwilibPatternAudit {
 	errors: Record<number, string>;
@@ -13,13 +13,6 @@ export function auditSwilibPatterns(
 	patterns: Array<SwilibPattern | undefined>,
 	cache: SwilibPatternCache,
 ): SwilibPatternAudit {
-	if (cache.target !== swilib.target)
-		throw new Error(`Pattern cache target mismatch: expected ${swilib.target}, got ${cache.target}.`);
-	if (cache.platform !== swilib.platform)
-		throw new Error(`Pattern cache platform mismatch: expected ${swilib.platform}, got ${cache.platform}.`);
-	if (cache.patternsHash !== getPatternsHash(patterns))
-		throw new Error(`Pattern cache for ${cache.target} is outdated.`);
-
 	const errors: Record<number, string> = {};
 	let checked = 0;
 	let matched = 0;
@@ -30,9 +23,9 @@ export function auditSwilibPatterns(
 		if (!pattern || !swiEntry)
 			continue;
 
-		const cacheEntry = cache.entries[formatId(id)];
-		if (!cacheEntry || cacheEntry.pattern !== pattern)
-			throw new Error(`Pattern cache for ${cache.target} is outdated at #${formatId(id)}.`);
+		const cacheEntry = cache[id];
+		if (!cacheEntry)
+			throw new Error(`Invalid pattern cache at #${formatId(id)}.`);
 
 		checked++;
 		if (cacheEntry.error) {

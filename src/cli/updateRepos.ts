@@ -36,7 +36,7 @@ export default createAppCommand<CLIBaseOptions>(async () => {
 		const platform = getSwilibPlatform(swilibConfig, target);
 		const patterns = parsePatterns(patternSource, platform);
 		console.log(`${target}: updating pattern cache (${platform})...`);
-		const cache = await persistSwilibPatternCache(target, platform, patterns, fullflash);
-		console.log(chalk.green(`${target}: ${Object.keys(cache.entries).length} patterns cached.`));
+		const cache = await persistSwilibPatternCache(target, patterns, fullflash);
+		console.log(chalk.green(`${target}: ${cache.filter(Boolean).length} patterns cached.`));
 	}
 });
