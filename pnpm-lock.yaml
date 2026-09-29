@@ -20,6 +20,9 @@ importers:
       '@inquirer/prompts':
         specifier: ^8.7.2
         version: 8.7.2(@types/node@24.10.1)
+      '@npmcli/promise-spawn':
+        specifier: ^9.0.1
+        version: 9.0.1
       '@sie-js/swilib':
         specifier: ^3.0.4
         version: 3.0.4
@@ -60,6 +63,9 @@ importers:
         specifier: ^17.7.3
         version: 17.7.3
     devDependencies:
+      '@types/npmcli__promise-spawn':
+        specifier: ^6.0.3
+        version: 6.0.3
       '@types/sprintf-js':
         specifier: ^1.1.4
         version: 1.1.4
@@ -272,6 +278,9 @@ packages:
 
   '@types/node@24.10.1':
     resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
+
+  '@types/npmcli__promise-spawn@6.0.3':
+    resolution: {integrity: sha512-4EQlesp5HtYHPXMXd4uuI+Q9hELEU0eVg/HBRLkqGC5U2ohwXZduCottmzPpb4tWCB+w4kQ3XNPlHIdXvCTyFw==}
 
   '@types/sprintf-js@1.1.4':
     resolution: {integrity: sha512-aWK1reDYWxcjgcIIPmQi3u+OQDuYa9b+lr6eIsGWrekJ9vr1NSjr4Eab8oQ1iKuH1ltFHpXGyerAv1a3FMKxzQ==}
@@ -954,7 +963,10 @@ snapshots:
   '@types/node@24.10.1':
     dependencies:
       undici-types: 7.16.0
-    optional: true
+
+  '@types/npmcli__promise-spawn@6.0.3':
+    dependencies:
+      '@types/node': 24.10.1
 
   '@types/sprintf-js@1.1.4': {}
 
@@ -1376,8 +1388,7 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  undici-types@7.16.0:
-    optional: true
+  undici-types@7.16.0: {}
 
   util-deprecate@1.0.2: {}
 

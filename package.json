@@ -17,6 +17,7 @@
 		"@fastify/cors": "^11.3.0",
 		"@fastify/multipart": "^9.4.0",
 		"@inquirer/prompts": "^8.7.2",
+		"@npmcli/promise-spawn": "^9.0.1",
 		"@sie-js/swilib": "^3.0.4",
 		"@sie-js/vkp": "^2.0.2",
 		"@types/debug": "^4.1.13",
@@ -32,6 +33,7 @@
 		"yargs": "^17.7.3"
 	},
 	"devDependencies": {
+		"@types/npmcli__promise-spawn": "^6.0.3",
 		"@types/sprintf-js": "^1.1.4",
 		"typescript": "^5.9.3"
 	},

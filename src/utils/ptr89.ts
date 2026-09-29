@@ -1,86 +1,59 @@
-import { execFile } from "node:child_process";
+import promiseSpawn from "@npmcli/promise-spawn";
 
-const MAX_OUTPUT_SIZE = 64 * 1024 * 1024;
+type Ptr89SearchType = 'address' | 'pointer' | 'reference' | 'branch';
+type Ptr89XRefType = 'pointer' | 'reference' | 'branch';
 
-export interface Ptr89SearchResult {
+interface Ptr89SearchResult {
 	address: number;
 	offset?: number;
 	bytes?: string;
 }
 
-export interface Ptr89Search {
+interface Ptr89Search {
 	pattern: string;
-	type: string;
+	type: Ptr89SearchType;
 	results: Ptr89SearchResult[];
 }
 
-interface Ptr89JsonOutput {
-	patterns?: Ptr89Search[];
-	error?: string;
+interface Ptr89XRef {
+	xref: number;
+	offset: number;
+	type: Ptr89XRefType;
 }
 
-export class Ptr89PatternError extends Error { }
-
-export class Ptr89Cli {
-	constructor(private readonly executable = process.env.PTR89_BIN ?? 'ptr89') { }
-
-	async getVersion(): Promise<string> {
-		return (await run(this.executable, ['--version'])).trim();
-	}
-
-	async find(file: string, pattern: string, limit = 100): Promise<Ptr89Search> {
-		let stdout: string;
-		try {
-			stdout = await run(this.executable, [
-				'-f', file,
-				'-A', 'arm',
-				'-J',
-				'-n', String(limit),
-				'-p', pattern,
-			]);
-		} catch (error) {
-			stdout = error instanceof ExecFileError ? error.stdout : '';
-			const output = parseOutput(stdout);
-			if (output?.error)
-				throw new Ptr89PatternError(firstLine(output.error));
-			throw error;
-		}
-
-		const output = parseOutput(stdout);
-		const search = output?.patterns?.[0];
-		if (!search)
-			throw new Error(`Invalid JSON output from ${this.executable}.`);
-		return search;
-	}
+interface Ptr89Function {
+	id: number;
+	name: string;
+	pattern: string;
+	type: Ptr89SearchType;
+	result: Ptr89SearchResult | null;
 }
 
-class ExecFileError extends Error {
-	constructor(message: string, readonly stdout: string) {
-		super(message);
-	}
+type Ptr89JsonOutput =
+	{ error: string } |
+	{ patterns: Ptr89Search[] } |
+	{ target: number; xrefs: Ptr89XRef[] } |
+	{ functions: Ptr89Function[] } |
+	{ pattern: string };
+
+export async function findPattern(file: string, pattern: string): Promise<{ type: Ptr89SearchType; address?: number }> {
+	const output = JSON.parse(await run(['-f', file, '-A', 'arm', '-J', '-n', '1', '-p', pattern])) as Ptr89JsonOutput;
+	const result = 'patterns' in output ? output.patterns[0] : undefined;
+	if (!result)
+		throw new Error(`Invalid JSON output from ptr89.`);
+	return { type: result.type, address: result.results[0]?.address };
 }
 
-function run(executable: string, args: string[]): Promise<string> {
-	return new Promise((resolve, reject) => {
-		execFile(executable, args, { encoding: 'utf8', maxBuffer: MAX_OUTPUT_SIZE }, (error, stdout, stderr) => {
-			if (error) {
-				const details = stderr.trim() || error.message;
-				reject(new ExecFileError(`${executable}: ${details}`, stdout));
-			} else {
-				resolve(stdout);
-			}
+async function run(args: string[]): Promise<string> {
+	return promiseSpawn('ptr89', args)
+		.then(result => result.stdout)
+		.catch(error => {
+			let output: Ptr89JsonOutput | undefined;
+			try {
+				output = JSON.parse(error.stdout) as Ptr89JsonOutput;
+			} catch { }
+			if (output && 'error' in output)
+				throw new Error(output.error.split('\n', 1)[0]);
+			throw new Error(`ptr89: ${error.stderr || error.message}`);
 		});
-	});
-}
-
-function parseOutput(stdout: string): Ptr89JsonOutput | undefined {
-	try {
-		return JSON.parse(stdout) as Ptr89JsonOutput;
-	} catch {
-		return undefined;
-	}
-}
-
-function firstLine(message: string): string {
-	return message.split('\n', 1)[0];
 }

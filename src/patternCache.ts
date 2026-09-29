@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { SwilibPattern, SwiPlatform } from "@sie-js/swilib";
-import { Ptr89Cli, Ptr89PatternError, Ptr89Search } from "#src/utils/ptr89.js";
+import { findPattern } from "#src/utils/ptr89.js";
 import { getPersistCached, persistCached } from "#src/utils/cache.js";
 
 export const PATTERN_CACHE_VERSION = 2;
@@ -21,7 +21,6 @@ export interface SwilibPatternCache {
 	target: string;
 	platform: SwiPlatform;
 	fullflash: string;
-	ptr89: string;
 	patternsHash: string;
 	entries: Record<string, SwilibPatternCacheEntry>;
 }
@@ -32,8 +31,6 @@ export async function generateSwilibPatternCache(
 	patterns: Array<SwilibPattern | undefined>,
 	fullflash: string,
 ): Promise<SwilibPatternCache> {
-	const ptr89 = new Ptr89Cli();
-	const ptr89Version = await ptr89.getVersion();
 	const entries: Record<string, SwilibPatternCacheEntry> = {};
 	const idsByPattern = new Map<string, number[]>();
 
@@ -47,24 +44,24 @@ export async function generateSwilibPatternCache(
 	}
 
 	await mapConcurrent([...idsByPattern], MAX_CONCURRENCY, async ([pattern, ids]) => {
-		let search: Ptr89Search | undefined;
+		let type: string | undefined;
+		let address: number | undefined;
 		let error: string | undefined;
 		try {
-			search = await ptr89.find(fullflash, pattern, 1);
+			({ type, address } = await findPattern(fullflash, pattern));
 		} catch (cause) {
-			if (!(cause instanceof Ptr89PatternError))
+			if (!(cause instanceof Error))
 				throw cause;
 			error = cause.message;
 		}
 
-		const address = search?.results[0]?.address;
 		for (const id of ids) {
 			const entry = patterns[id]!;
 			entries[formatId(id)] = {
 				name: entry.name,
 				symbol: entry.symbol,
 				pattern,
-				type: search?.type,
+				type,
 				address,
 				error,
 			};
@@ -76,7 +73,6 @@ export async function generateSwilibPatternCache(
 		target,
 		platform,
 		fullflash: path.basename(fullflash),
-		ptr89: ptr89Version,
 		patternsHash: getPatternsHash(patterns),
 		entries: sortEntries(entries),
 	};

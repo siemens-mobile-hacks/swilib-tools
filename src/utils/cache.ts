@@ -9,7 +9,7 @@ interface CacheEntry<T = unknown> {
 const cache = new Map<string, CacheEntry>();
 
 export async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
-	const revision = `${await getDevRootRevision()}-${getPersistentCacheRevision()}`;
+	const revision = await getDevRootRevision();
 	const entry = cache.get(key) as CacheEntry<T> | undefined;
 	if (entry?.revision === revision)
 		return entry.value;
@@ -53,16 +53,4 @@ async function readPersistCached<T>(key: string): Promise<CacheEntry<T> | undefi
 async function writePersistCache<T>(key: string, entry: CacheEntry<T>): Promise<void> {
 	await fs.promises.mkdir(CACHE_DIR, { recursive: true });
 	await fs.promises.writeFile(getPersistCacheFile(key), JSON.stringify(entry, null, '\t') + '\n');
-}
-
-function getPersistentCacheRevision(): string {
-	if (!CACHE_DIR || !fs.existsSync(CACHE_DIR))
-		return 'empty';
-	return fs.readdirSync(CACHE_DIR)
-		.map(name => {
-			const stat = fs.statSync(`${CACHE_DIR}/${name}`);
-			return `${name}:${stat.size}:${stat.mtimeMs}`;
-		})
-		.sort()
-		.join('|');
 }
