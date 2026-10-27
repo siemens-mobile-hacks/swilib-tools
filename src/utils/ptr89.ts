@@ -36,12 +36,12 @@ type Ptr89JsonOutput =
 	{ functions: Ptr89Function[] } |
 	{ pattern: string };
 
-export async function findPattern(file: string, pattern: string): Promise<{ type: Ptr89SearchType; address?: number }> {
-	const output = JSON.parse(await run(['-f', file, '-A', 'arm', '-J', '-n', '1', '-p', pattern])) as Ptr89JsonOutput;
-	const result = 'patterns' in output ? output.patterns[0] : undefined;
-	if (!result)
+export async function findPatterns(file: string, patterns: string[]): Promise<Array<{ type: Ptr89SearchType; address?: number }>> {
+	const args = ['-f', file, '-A', 'arm', '-J', '-n', '1', ...patterns.flatMap(pattern => ['-p', pattern])];
+	const output = JSON.parse(await run(args)) as Ptr89JsonOutput;
+	if (!('patterns' in output) || output.patterns.length !== patterns.length)
 		throw new Error(`Invalid JSON output from ptr89.`);
-	return { type: result.type, address: result.results[0]?.address };
+	return output.patterns.map(result => ({ type: result.type, address: result.results[0]?.address }));
 }
 
 async function run(args: string[]): Promise<string> {

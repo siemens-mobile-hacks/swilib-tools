@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import os from "node:os";
 import { SwilibPattern } from "@sie-js/swilib";
-import { findPattern } from "#src/utils/ptr89.js";
+import { findPatterns } from "#src/utils/ptr89.js";
 import { persistCached } from "#src/utils/cache.js";
 import { FULLFLASHES_DIR, getFullflash, parseSwilibTarget } from "#src/utils/sdk.js";
 
@@ -37,25 +38,19 @@ export function loadSwilibPatternCache(
 			groups.set(key, group);
 		}
 
-		await mapConcurrent([...groups.values()], async ({ candidates, ids }) => {
-			let entry: SwilibPatternCacheEntry;
-			try {
-				entry = {};
-				for (const pattern of candidates) {
-					const { address } = await findPattern(source, pattern);
-					if (address !== undefined) {
-						entry = { address };
-						break;
-					}
+		const results = await searchPatterns(source, [...new Set([...groups.values()].flatMap(group => group.candidates))]);
+		for (const { candidates, ids } of groups.values()) {
+			let entry: SwilibPatternCacheEntry = {};
+			for (const pattern of candidates) {
+				const result = results.get(pattern)!;
+				if (result.error || result.address !== undefined) {
+					entry = result;
+					break;
 				}
-			} catch (error) {
-				if (!(error instanceof Error))
-					throw error;
-				entry = { error: error.message };
 			}
 			for (const id of ids)
 				cache[id] = entry;
-		});
+		}
 		return cache;
 	});
 }
@@ -66,11 +61,34 @@ function getRevision(patterns: Array<SwilibPattern | undefined>): string {
 	return `${CACHE_VERSION}:${hash}`;
 }
 
-async function mapConcurrent<T>(items: T[], handler: (item: T) => Promise<void>): Promise<void> {
-	let index = 0;
-	const workers = Array.from({ length: Math.min(4, items.length) }, async () => {
-		while (index < items.length)
-			await handler(items[index++]);
-	});
-	await Promise.all(workers);
+async function searchPatterns(source: string, patterns: string[]): Promise<Map<string, SwilibPatternCacheEntry>> {
+	const results = new Map<string, SwilibPatternCacheEntry>();
+	const concurrency = Math.max(1, Math.min(4, Math.floor(os.availableParallelism() / 2)));
+	const chunkSize = Math.ceil(patterns.length / concurrency);
+	const chunks: string[][] = [];
+	for (let i = 0; i < patterns.length; i += chunkSize)
+		chunks.push(patterns.slice(i, i + chunkSize));
+
+	await Promise.all(chunks.map(async chunk => {
+		try {
+			const found = await findPatterns(source, chunk);
+			chunk.forEach((pattern, i) => results.set(pattern, { address: found[i].address }));
+		} catch {
+			// One invalid pattern fails the whole batch, so retry one by one
+			for (const pattern of chunk)
+				results.set(pattern, await searchPattern(source, pattern));
+		}
+	}));
+	return results;
+}
+
+async function searchPattern(source: string, pattern: string): Promise<SwilibPatternCacheEntry> {
+	try {
+		const [{ address }] = await findPatterns(source, [pattern]);
+		return { address };
+	} catch (error) {
+		if (!(error instanceof Error))
+			throw error;
+		return { error: error.message };
+	}
 }
