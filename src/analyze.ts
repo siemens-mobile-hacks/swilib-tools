@@ -185,7 +185,8 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 			const sdkEntry = sdklib.entries[id];
 			const swiEntry = swilib.entries[id];
 			const isUnavailable = sdkEntry?.platforms != null && !sdkEntry.platforms.includes(platform);
-			if (sdkEntry && !isUnavailable) {
+			const isBuiltin = sdkEntry?.builtin?.includes(platform) ?? false;
+			if (sdkEntry && (swiEntry || !isUnavailable && !isBuiltin)) {
 				totalFunctionsCnt++;
 				coverage[platform] = coverage[platform] ?? {};
 				coverage[platform][id] = coverage[platform][id] ?? { ok: 0, bad: 0 };
