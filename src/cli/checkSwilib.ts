@@ -32,7 +32,7 @@ export default createAppCommand<Options>(async ({ target, file }) => {
 
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 	const patternCache = await loadSwilibPatternCache(target, ptrlib);
-	const patternAudit = auditSwilibPatterns(swilib, sdklib, ptrlib, patternCache);
+	const patternAudit = auditSwilibPatterns(swilib, ptrlib, patternCache);
 	applySwilibPatternAudit(analysis, patternAudit);
 	console.log(`Checked ${patternAudit.checked} cached patterns (${patternAudit.matched} matched).`);
 	console.log();

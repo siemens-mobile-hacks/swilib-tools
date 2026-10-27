@@ -1,4 +1,4 @@
-import { Sdklib, Swilib, SwilibAnalysisResult, SwilibPattern, SwiType } from "@sie-js/swilib";
+import { Swilib, SwilibAnalysisResult, SwilibPattern } from "@sie-js/swilib";
 import { SwilibPatternCache } from "#src/patternCache.js";
 
 export interface SwilibPatternAudit {
@@ -9,7 +9,6 @@ export interface SwilibPatternAudit {
 
 export function auditSwilibPatterns(
 	swilib: Swilib,
-	sdklib: Sdklib,
 	patterns: Array<SwilibPattern | undefined>,
 	cache: SwilibPatternCache,
 ): SwilibPatternAudit {
@@ -33,8 +32,7 @@ export function auditSwilibPatterns(
 			continue;
 		}
 
-		const isFunction = sdklib.entries[id]?.type === SwiType.FUNCTION;
-		if (cacheEntry.address !== undefined && addressesMatch(swiEntry.value, cacheEntry.address, isFunction)) {
+		if (cacheEntry.address === swiEntry.value) {
 			matched++;
 		} else {
 			errors[id] = formatMismatchError(cacheEntry.address);
@@ -53,12 +51,6 @@ export function applySwilibPatternAudit(analysis: SwilibAnalysisResult, audit: S
 		analysis.stat.good--;
 		analysis.stat.bad++;
 	}
-}
-
-function addressesMatch(expected: number, actual: number, isFunction: boolean): boolean {
-	if (expected === actual)
-		return true;
-	return isFunction && (expected & 0xFFFFFFFE) === (actual & 0xFFFFFFFE);
 }
 
 function formatMismatchError(address?: number): string {

@@ -125,7 +125,7 @@ export async function getTargetSwilibAnalysis(target: string, input: SwilibInput
 	const { swilibConfig, ptrlib, sdklib, swilib } = await loadLibraryForTarget(target, input);
 	const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 	const patternCache = await loadSwilibPatternCache(target, ptrlib);
-	const patternAudit = auditSwilibPatterns(swilib, sdklib, ptrlib, patternCache);
+	const patternAudit = auditSwilibPatterns(swilib, ptrlib, patternCache);
 	applySwilibPatternAudit(analysis, patternAudit);
 
 	const entries: TargetSwilibAnalysisEntry[] = [];
@@ -175,7 +175,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 		const analysis = analyzeSwilib(swilibConfig, swilib, sdklib);
 		const patterns = platformToPatterns[platform];
 		const patternCache = await loadSwilibPatternCache(target, patterns);
-		const patternAudit = auditSwilibPatterns(swilib, sdklib, patterns, patternCache);
+		const patternAudit = auditSwilibPatterns(swilib, patterns, patternCache);
 		applySwilibPatternAudit(analysis, patternAudit);
 		const { missing, errors } = analysis;
 
