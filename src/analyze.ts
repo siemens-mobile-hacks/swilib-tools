@@ -180,10 +180,13 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 		const { missing, errors } = analysis;
 
 		let goodFunctionsCnt = 0;
+		let totalFunctionsCnt = 0;
 		for (let id = 0; id < sdklib.entries.length; id++) {
 			const sdkEntry = sdklib.entries[id];
 			const swiEntry = swilib.entries[id];
-			if (sdkEntry) {
+			const isUnavailable = sdkEntry?.platforms != null && !sdkEntry.platforms.includes(platform);
+			if (sdkEntry && !isUnavailable) {
+				totalFunctionsCnt++;
 				coverage[platform] = coverage[platform] ?? {};
 				coverage[platform][id] = coverage[platform][id] ?? { ok: 0, bad: 0 };
 
@@ -200,7 +203,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 					coverage[platform][id].bad++;
 					coverage["ALL"][id].bad++;
 				}
-			} else {
+			} else if (!sdkEntry) {
 				if (swiEntry?.value != null)
 					dirtyEntries[id] = true;
 			}
@@ -211,7 +214,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 			}
 		}
 
-		targetCoverage[target] = +(goodFunctionsCnt / sdklib.entries.length * 100).toFixed(1);
+		targetCoverage[target] = +(goodFunctionsCnt / totalFunctionsCnt * 100).toFixed(1);
 	}
 
 	const allFiles: string[] = [];

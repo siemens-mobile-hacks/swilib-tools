@@ -52,9 +52,6 @@ export default createAppCommand<Options>(async ({ target, file }) => {
 			if (sdkEntry?.files.includes('swilib/patch.h'))
 				notes.push(chalk.red('patch'));
 
-			if (sdkEntry?.platforms && !sdkEntry.platforms.includes(platform))
-				notes.push(chalk.grey('not available'));
-
 			errorsTable.push([
 				formatId(id),
 				formatFuncName(sdkEntry?.name),
