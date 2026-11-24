@@ -88,7 +88,7 @@ export async function getPatternsSummaryAnalysis(): Promise<PatternEntry[]> {
 			const patterns = platformToPatterns[platform];
 			if (sdkEntry?.builtin?.includes(platform)) {
 				coverage.push(200); // special value "builtin"
-			} else if (sdkEntry?.platforms && !sdkEntry.platforms.includes(platform)) {
+			} else if (sdkEntry && (!platformToLib[platform].entries[id] || sdkEntry.platforms && !sdkEntry.platforms.includes(platform))) {
 				coverage.push(-200); // special value "not available"
 			} else {
 				coverage.push(patterns[id]?.pattern != null ? 100 : 0);
@@ -275,7 +275,7 @@ export async function getSwilibSummaryAnalysis(): Promise<SummarySwilibAnalysis>
 
 			if (sdkEntry.builtin?.includes(platform)) {
 				entryCoverage[platform] = 200; // special value "builtin"
-			} else if (sdkEntry.platforms && !sdkEntry.platforms.includes(platform)) {
+			} else if (!platformToLib[platform].entries[id] || sdkEntry.platforms && !sdkEntry.platforms.includes(platform)) {
 				entryCoverage[platform] = -200; // special value "not available"
 			} else {
 				const coveragePct = coverage[platform][id].ok / (coverage[platform][id].ok + coverage[platform][id].bad) * 100;
